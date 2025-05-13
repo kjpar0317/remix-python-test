@@ -3,14 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.callbacks.tracers import LangChainTracer
-import httpx
 import yfinance as yf
-from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest
+import pandas as pd
+# import numpy as np
+import math
+from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
 from app.core.stock import generate_recommendations, analyze_news_sentiment
+from app.core.stock_indicators import calculate_golden_cross, calculate_rsi, calculate_bollinger_bands, calculate_sniper
 
 router = APIRouter()
-llm = ChatOpenAI()
 
 # 엔드포인트 정의
 @router.post("/analysis", response_model=StockAnalysisResponse)
@@ -59,6 +61,7 @@ async def analyze_stock(
 
     # ChatOpenAI 모델 설정
     chat = ChatOpenAI(
+        # api_key=settings.OPEN_API_KEY,
         temperature=0,
         callbacks=[tracer],
         metadata = { "analysis_type": request.analysis_type }
@@ -99,3 +102,133 @@ async def analyze_stock(
     }
 
     return structured_response
+
+
+"""
+Golden Cross (recommendGC: 매도):
+
+Golden Cross가 매도를 추천하고 있다는 것은, 이동평균선 골든크로스가 발생하지 않았거나 발생해도 가격이 상승하지 않는 상태일 수 있습니다. 즉, 상승 추세가 아닌 하락 추세가 계속될 가능성을 의미합니다.
+
+RSI (recommendRSI: 강력매수):
+
+RSI가 강력매수로 추천된 것은, 과매도 상태(RSI < 30)가 나타났다는 것입니다. 즉, 현재 주식이 너무 저평가되어 있으며, 가격 반등의 가능성이 있는 상태라는 신호입니다.
+
+Upper/Lower Band (recommendUpperLower: 매도):
+
+Upper Band와 Lower Band를 기준으로 매도를 추천하고 있다는 것은, 가격이 상단 밴드를 넘어섰거나 하단 밴드에 도달한 상태로 볼 수 있습니다. 가격이 너무 높거나, 너무 낮은 위치에 있어 추가적인 상승이나 하락을 피하고 매도할 시점이라는 신호일 수 있습니다.
+
+Sniper Signal (recommendSniperSignal: 매도):
+
+Sniper Signal이 매도를 추천하고 있다는 것은, 특정한 매도 신호(예: 고급 기술적 분석 신호)가 발생했다는 것을 의미합니다. 매도 타이밍을 나타내는 강한 신호가 주어진 상태입니다.
+
+종합적으로 볼 때:
+RSI가 강력매수를 추천하는 것과는 달리, Golden Cross, Upper/Lower Band, Sniper Signal이 모두 매도를 추천하고 있습니다. 이는 과매도 상태에서의 반등 가능성을 나타내는 RSI 신호와 하락 추세를 나타내는 다른 지표들 사이에서 상반된 신호가 발생하는 상황입니다.
+
+이런 경우는 리스크가 큰 상태로 해석할 수 있으며, 매수를 고려하기엔 위험할 수 있습니다. 매도 신호가 더 우세한 상황으로 보이므로, 전체적인 흐름은 하락 추세에 가까운 것으로 해석됩니다.
+
+결론:
+현재는 하락 추세가 우세한 시점으로 보이며, 매도가 더 적합한 전략일 수 있습니다. 다만, RSI의 강력매수 신호를 고려하여 단기적인 반등을 기대할 수는 있지만, 전체적인 기술적 지표들은 하락을 시사하고 있으므로 신중한 판단이 필요합니다.
+"""
+@router.post("/chart-data", response_model=PredictionData, response_model_by_alias=True)
+async def chart_data(req: StockRequest):
+    ticker = req.ticker
+    stock_data = yf.Ticker(ticker)
+    df = stock_data.history(period=req.timeframe)
+
+    # 1. 골든 크로스 (Golden Cross)
+    df['MA50'] = df['Close'].rolling(window=50).mean()
+    df['MA200'] = df['Close'].rolling(window=200).mean()
+    df['Golden Cross'] = (df['MA50'] > df['MA200']).astype(int)
+
+    # 2. RSI (Relative Strength Index)
+    delta = df['Close'].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(window=14).mean()
+    avg_loss = loss.rolling(window=14).mean()
+    rs = avg_gain / avg_loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+
+    # 3. 볼린저 밴드 (Bollinger Bands)
+    df['MA20'] = df['Close'].rolling(window=20).mean()
+    df['stddev'] = df['Close'].rolling(window=20).std()
+    df['Upper Band'] = df['MA20'] + (2 * df['stddev'])
+    df['Lower Band'] = df['MA20'] - (2 * df['stddev'])
+
+    # 4. 스나이퍼 매매법 (Sniper Trading)
+    df['Sniper Signal'] = (df['Close'].pct_change() > 0.02).astype(int)
+
+    # df = df.where(pd.notnull(df), 0)
+    # NaN → 0 처리
+    df.fillna(0, inplace=True)
+
+    # 각 영역에 대한 추천 값을 저장
+    recommend_gc = []
+    recommend_rsi = []
+    recommend_upper_lower = []  # Upper Band와 Lower Band를 합친 추천 리스트
+    recommend_sniper_signal = []  # Sniper Signal에 대한 추천
+
+    # 데이터프레임에서 각 값 계산
+    for index, row in df.iterrows():
+        latest_rsi = row['RSI']
+        latest_gc = row['Golden Cross']
+        latest_close = row['Close']
+        latest_upper = row['Upper Band']
+        latest_lower = row['Lower Band']
+        latest_sniper_signal = row['Sniper Signal']
+
+        # Golden Cross에 대한 추천
+        if latest_gc == 1:
+            recommend_gc.append("매수")
+        else:
+            recommend_gc.append("매도")
+
+        # RSI에 대한 추천
+        if latest_rsi < 30:
+            recommend_rsi.append("강력매수")
+        elif latest_rsi < 40:
+            recommend_rsi.append("매수")
+        elif latest_rsi > 70:
+            recommend_rsi.append("강력매도")
+        elif latest_rsi > 60:
+            recommend_rsi.append("매도")
+
+        # Upper Band와 Lower Band에 대한 추천
+        if latest_close > latest_upper:
+            recommend_upper_lower.append("매도")
+        else:
+            recommend_upper_lower.append("매수")
+
+        if latest_close < latest_lower:
+            recommend_upper_lower.append("매수")
+        else:
+            recommend_upper_lower.append("매도")
+
+        # Sniper Signal에 대한 추천
+        if latest_sniper_signal == 1:  # Sniper Signal이 1이면 매수
+            recommend_sniper_signal.append("매수")
+        else:  # Sniper Signal이 0이면 매도
+            recommend_sniper_signal.append("매도")
+
+    # 1년치 데이터에 대해 각 추천을 종합하여 최종 추천을 내림
+    final_recommend_gc = "매수" if recommend_gc.count("매수") > recommend_gc.count("매도") else "매도"
+    final_recommend_rsi = "강력매수" if recommend_rsi.count("강력매수") > recommend_rsi.count("매도") else "매도"
+    final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
+    final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
+
+
+    # 예측 데이터 반환
+    result = {
+        "dates": df.index.strftime('%Y-%m-%d').tolist(),
+        "goldenCross": df['Golden Cross'].tolist(),
+        "rsi": df['RSI'].tolist(),
+        "upperBand": df['Upper Band'].tolist(),
+        "lowerBand": df['Lower Band'].tolist(),
+        "sniperSignal": df['Sniper Signal'].tolist(),
+        "recommendGC": final_recommend_gc,  # Golden Cross에 대한 최종 추천
+        "recommendRSI": final_recommend_rsi,  # RSI에 대한 최종 추천
+        "recommendUpperLower": final_recommend_upper_lower,  # Upper Band에 대한 최종 추천
+        "recommendSniperSignal": final_recommend_sniper_signal  # Lower Band에 대한 최종 추천
+    }
+
+    return result

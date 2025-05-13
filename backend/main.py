@@ -1,12 +1,8 @@
 from fastapi import FastAPI
-from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import database
 from app.api.v1.api import api_router
-
-# 미리 env 파일을 읽어들이자.
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -1,8 +1,13 @@
+import os
 import pathlib
 
 from pydantic import AnyHttpUrl, EmailStr, field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Optional, Union
+from dotenv import load_dotenv
+
+# env 파일을 읽어들이자.
+load_dotenv()
 
 # Project Directories
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -31,6 +36,9 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: Optional[str] = "sqlite:///stock.db"
     FIRST_SUPERUSER: EmailStr = "test@test.com"
     FIRST_SUPERUSER_PW: str = "test"
+    OPEN_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
+    LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY", "")
 
     class Config:
         case_sensitive = True
