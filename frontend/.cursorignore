@@ -1,0 +1,11 @@
+# 가상 환경 및 의존성 파일 제외
+.venv/
+node_modules/
+
+# 환경 변수 및 보안 파일 제외
+.env
+config/settings_secret.py
+
+# 로그 파일 및 캐시 파일 제외
+*.log
+__pycache__/
