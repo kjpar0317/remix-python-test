@@ -216,10 +216,10 @@ async def chart_data(req: StockRequest):
     final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
     final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
 
-
     # 예측 데이터 반환
     result = {
         "dates": df.index.strftime('%Y-%m-%d').tolist(),
+        "close": df['Close'].tolist(),
         "goldenCross": df['Golden Cross'].tolist(),
         "rsi": df['RSI'].tolist(),
         "upperBand": df['Upper Band'].tolist(),

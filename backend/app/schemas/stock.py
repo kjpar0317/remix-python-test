@@ -20,6 +20,7 @@ class StockRequest(BaseModel):
 # 주식 예측 결과를 반환할 Pydantic 모델
 class PredictionData(BaseModel):
     dates: List[str]
+    close: List[float]
     goldenCross: List[int]
     rsi: List[float]
     upperBand: List[float]
