@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import type { ActionFunction } from "@remix-run/node";
-import { json } from "@remix-run/node";
+// import { json } from "@remix-run/node";
 import { useActionData, Form } from "@remix-run/react";
 import StockChart from "../components/charts/StockChart";
 
@@ -27,14 +27,15 @@ export const action: ActionFunction = async ({ request }) => {
 	});
 	if (!response.ok) throw new Response("Failed to fetch chart data", { status: response.status });
 	const data = await response.json();
-	return json(data);
+	// return json(data);
+	return data;
 };
 
 export default function Index() {
 	const actionData = useActionData<typeof action>();
 
 	return (
-		<div className="flex h-screen items-center justify-center">
+		<div className="flex h-screen justify-center">
 			<div className="flex flex-col items-stretch gap-16 w-full max-w-5xl mx-auto">
 				<header className="flex flex-col items-center gap-9">
 					<h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">

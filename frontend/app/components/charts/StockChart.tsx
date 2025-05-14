@@ -13,6 +13,16 @@ import {
 import 'chartjs-adapter-date-fns';
 import { ko } from 'date-fns/locale';
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
+import { cn } from "~/lib/utils"
+
 Chart.register(
   LineController,
   LineElement,
@@ -179,7 +189,7 @@ export default function StockChart({ data }: StockChartProps) {
   }, [data]);
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full">
       <div className="grid grid-cols-4 gap-4 w-full">
         {[
           { title: "골든크로스", signal: data.recommendGC },
@@ -212,11 +222,13 @@ function SignalCard({ title, signal }: { title: string; signal: string }) {
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <div className={`text-center p-2 rounded ${getSignalColor(signal)}`}>
-        {signal}
-      </div>
-    </div>
+    <Card className="transition duration-500 transform hover:scale-105 hover:cursor-pointer">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className={cn(getSignalColor(signal))}>{signal}</p>
+      </CardContent>
+    </Card>
   );
 }
