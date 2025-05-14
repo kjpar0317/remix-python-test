@@ -1,5 +1,4 @@
-import type { MetaFunction } from "@remix-run/node";
-import type { ActionFunction } from "@remix-run/node";
+import type { MetaFunction, ActionFunction } from "@remix-run/node";
 
 import { useRef } from "react";
 import { useActionData, Form } from "@remix-run/react";
