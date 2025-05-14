@@ -10,7 +10,7 @@ async def lifespan(app: FastAPI):
     yield
     await database.disconnect()
 
-app = FastAPI(title="주식 AI 분석 플랫폼", lifespan=lifespan)
+app = FastAPI(title="AI 분석 플랫폼", lifespan=lifespan)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 # app.include_router(root_router)

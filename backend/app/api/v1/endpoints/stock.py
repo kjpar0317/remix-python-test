@@ -7,10 +7,11 @@ import yfinance as yf
 import pandas as pd
 # import numpy as np
 import math
+
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
 from app.core.stock import generate_recommendations, analyze_news_sentiment
-from app.core.stock_indicators import calculate_golden_cross, calculate_rsi, calculate_bollinger_bands, calculate_sniper
+from app.core.stock_indicators import calculate_golden_cross, calculate_rsi, calculate_bollinger_bands, calculate_sniper, predict_close_price_with_rf
 
 router = APIRouter()
 
@@ -135,6 +136,8 @@ async def chart_data(req: StockRequest):
     stock_data = yf.Ticker(ticker)
     df = stock_data.history(period=req.timeframe)
 
+    df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
+
     # 1. 골든 크로스 (Golden Cross)
     df['MA50'] = df['Close'].rolling(window=50).mean()
     df['MA200'] = df['Close'].rolling(window=200).mean()
@@ -161,6 +164,8 @@ async def chart_data(req: StockRequest):
     # df = df.where(pd.notnull(df), 0)
     # NaN → 0 처리
     df.fillna(0, inplace=True)
+
+    df = predict_close_price_with_rf(df)
 
     # 각 영역에 대한 추천 값을 저장
     recommend_gc = []
@@ -216,9 +221,11 @@ async def chart_data(req: StockRequest):
     final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
     final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
 
+    print(df)
+
     # 예측 데이터 반환
     result = {
-        "dates": df.index.strftime('%Y-%m-%d').tolist(),
+        "dates": df['Date'].tolist(),
         "close": df['Close'].tolist(),
         "goldenCross": df['Golden Cross'].tolist(),
         "rsi": df['RSI'].tolist(),
