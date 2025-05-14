@@ -31,7 +31,6 @@ export default function StockAnalysis({ ticker, timeframe }: StockAnalysisProps)
     const chartRef = useRef<HTMLCanvasElement>(null)
   
     useEffect(() => {
-        console.log(`ticker: ${ticker}, timeframe: ${timeframe}`)
       if (!ticker || !timeframe) return
       setLoading(true)
       fetch("/api/stock/analysis", {

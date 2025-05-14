@@ -13,6 +13,7 @@
 		"lint-check": "biome check ."
 	},
 	"dependencies": {
+		"@radix-ui/react-slot": "^1.2.2",
 		"@remix-run/node": "^2.16.6",
 		"@remix-run/react": "^2.16.6",
 		"@remix-run/serve": "^2.16.6",
@@ -21,7 +22,9 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"date-fns": "^4.1.0",
+		"html2canvas-oklch": "^1.5.0-alpha.0",
 		"isbot": "^4.1.0",
+		"jspdf": "^3.0.1",
 		"lucide-react": "^0.510.0",
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
