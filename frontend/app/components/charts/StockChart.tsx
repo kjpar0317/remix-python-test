@@ -38,6 +38,7 @@ interface StockChartProps {
   data: {
     dates: string[];
     close: number[];
+    ma200: number[];
     rsi: number[];
     upperBand: number[];
     lowerBand: number[];
@@ -88,7 +89,7 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: '상단밴드',
             data: data.upperBand,
-            borderColor: '#4ade80',
+            borderColor: '#22c55e',
             borderWidth: 1,
             borderDash: [5, 5],
             fill: false,
@@ -97,7 +98,7 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: '하단밴드',
             data: data.lowerBand,
-            borderColor: '#4ade80',
+            borderColor: '#bbf7d0',
             borderWidth: 1,
             borderDash: [5, 5],
             fill: false,

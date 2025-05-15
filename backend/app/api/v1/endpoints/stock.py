@@ -136,12 +136,17 @@ async def chart_data(req: StockRequest):
     stock_data = yf.Ticker(ticker)
     df = stock_data.history(period=req.timeframe)
 
+    print(df)
+
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
 
     # 1. 골든 크로스 (Golden Cross)
     df['MA50'] = df['Close'].rolling(window=50).mean()
     df['MA200'] = df['Close'].rolling(window=200).mean()
     df['Golden Cross'] = (df['MA50'] > df['MA200']).astype(int)
+
+    # 결측치 처리
+    df['MA200'].fillna(0, inplace=True) 
 
     # 2. RSI (Relative Strength Index)
     delta = df['Close'].diff()
@@ -221,12 +226,13 @@ async def chart_data(req: StockRequest):
     final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
     final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
 
-    print(df)
+    # print(df)
 
     # 예측 데이터 반환
     result = {
         "dates": df['Date'].tolist(),
         "close": df['Close'].tolist(),
+        "ma200": df['MA200'].tolist(),
         "goldenCross": df['Golden Cross'].tolist(),
         "rsi": df['RSI'].tolist(),
         "upperBand": df['Upper Band'].tolist(),

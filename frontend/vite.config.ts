@@ -33,4 +33,7 @@ export default defineConfig({
 			}
 		}
 	},
+	optimizeDeps: {
+		entries: ["src/**/*.tsx", "src/**/*.ts"],
+	}
 });

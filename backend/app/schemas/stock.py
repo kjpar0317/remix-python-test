@@ -21,6 +21,7 @@ class StockRequest(BaseModel):
 class PredictionData(BaseModel):
     dates: List[str]
     close: List[float]
+    ma200: List[float]
     goldenCross: List[int]
     rsi: List[float]
     upperBand: List[float]
