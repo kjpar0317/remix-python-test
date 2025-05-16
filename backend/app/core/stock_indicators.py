@@ -1,5 +1,7 @@
 import pandas as pd
 
+import lightgbm as lgb
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from datetime import datetime
@@ -11,11 +13,29 @@ def predict_close_price_with_rf(df: pd.DataFrame):
     # 학습 데이터 구성
     features = ['MA20', 'MA50', 'MA200', 'RSI', 'stddev', 'Upper Band', 'Lower Band', 'Sniper Signal', 'Smart Sniper']
     train_df = df.dropna()
+
+    # 지연 피처
+    df['Close_t-1'] = df['Close'].shift(1)
+    df['Close_t-2'] = df['Close'].shift(2)
+    # 결측치(NA/NaN 값)를 제거
+    df.dropna()
+
     X = train_df[features]
     y = train_df['Close']
+    # X = df.drop(['Close'], axis=1)
+    # X = train_df.drop(columns=["Close", "Date"]) 
+    # y = train_df['Close']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     model = RandomForestRegressor(n_estimators=100, random_state=42)
+    # model = lgb.LGBMRegressor(
+    #     n_estimators=500,
+    #     learning_rate=0.05,
+    #     max_depth=6,
+    #     random_state=42,
+    #     predict_disable_shape_check=True
+    # )
     model.fit(X_train, y_train)
 
     # 현재 날짜 가져오기
@@ -53,6 +73,10 @@ def predict_close_price_with_rf(df: pd.DataFrame):
             (df["RSI"] < 30)
         ).astype(int)  
 
+        # 지연 피처
+        df['Close_t-1'] = df['Close'].shift(1)
+        df['Close_t-2'] = df['Close'].shift(2)
+
         latest = df.iloc[-1]
 
         ma200_value = latest['MA200']
@@ -71,6 +95,30 @@ def predict_close_price_with_rf(df: pd.DataFrame):
             'Sniper Signal': latest['Sniper Signal'],
             'Smart Sniper': latest['Smart Sniper']
         }
+
+        # 지연 피처
+        df['Close_t-1'] = df['Close'].shift(1)
+        df['Close_t-2'] = df['Close'].shift(2)
+        # 결측치(NA/NaN 값)를 제거
+        df.dropna()
+
+        X = train_df[features]
+        y = train_df['Close']
+        # X = df.drop(['Close'], axis=1)
+        # X = train_df.drop(columns=["Close", "Date"]) 
+        # y = train_df['Close']
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        # model = lgb.LGBMRegressor(
+        #     n_estimators=500,
+        #     learning_rate=0.05,
+        #     max_depth=6,
+        #     random_state=42,
+        #     predict_disable_shape_check=True
+        # )
+        model.fit(X_train, y_train)
 
         predicted_close = model.predict(pd.DataFrame([new_row]))[0]
 
