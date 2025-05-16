@@ -70,8 +70,8 @@ export default function Dashboard() {
   
     return (
       <div className="flex h-screen justify-center">
-        <div className="flex flex-col items-stretch gap-16 w-full max-w-5xl mx-auto mt-3">
-          <Form method="post" className="mb-4 flex gap-2">
+        <div className="flex flex-col items-stretch gap-1 w-full max-w-5xl mx-auto mt-3">
+          <Form method="post" className="mb-1 flex gap-2">
             <Input
               name="ticker"
               type="text"
@@ -102,7 +102,7 @@ export default function Dashboard() {
               </Button>
           </Form>
           <Button onClick={handlePrint}>PDF</Button>
-          <div ref={componentRef}>
+          <div ref={componentRef} className="w-full mt-5">
             <div className="flex flex-col items-stretch">
               {actionData && <StockChart data={actionData} />}
             </div>

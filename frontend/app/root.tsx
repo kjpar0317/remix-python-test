@@ -40,7 +40,7 @@ export default function App() {
 			<Meta />
 			<Links />
 		</head>
-		<body>
+		<body className="w-full h-full m-0">
 			{noLayout ? content : <TemplateLayout>{content}</TemplateLayout>}
 			<ScrollRestoration />
 			<Scripts />
