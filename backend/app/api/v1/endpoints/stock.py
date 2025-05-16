@@ -4,14 +4,15 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.callbacks.tracers import LangChainTracer
 import yfinance as yf
+from ta.trend import SMAIndicator
+from ta.momentum import RSIIndicator
+from ta.volatility import BollingerBands
 import pandas as pd
-# import numpy as np
-import math
 
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
-from app.core.stock import generate_recommendations, analyze_news_sentiment
-from app.core.stock_indicators import calculate_golden_cross, calculate_rsi, calculate_bollinger_bands, calculate_sniper, predict_close_price_with_rf
+from app.core.stock import subtract_timeframe, generate_recommendations, analyze_news_sentiment
+from app.core.stock_indicators import predict_close_price_with_rf
 
 router = APIRouter()
 
@@ -134,42 +135,61 @@ RSI가 강력매수를 추천하는 것과는 달리, Golden Cross, Upper/Lower 
 async def chart_data(req: StockRequest):
     ticker = req.ticker
     stock_data = yf.Ticker(ticker)
-    df = stock_data.history(period=req.timeframe)
 
-    print(df)
+    end_date = pd.Timestamp.today()
+    real_start_date = subtract_timeframe(end_date, req.timeframe)
+    # start_date = real_start_date - timedelta(days=200)
+    # df = stock_data.history(start=start_date, end=end_date)
+    df = stock_data.history(start=real_start_date, end=end_date)
 
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
 
     # 1. 골든 크로스 (Golden Cross)
-    df['MA50'] = df['Close'].rolling(window=50).mean()
-    df['MA200'] = df['Close'].rolling(window=200).mean()
+    # df = calculate_golden_cross(df)
+    df['MA20'] = SMAIndicator(close=df['Close'], window=20, fillna=True).sma_indicator()
+    df['MA50'] = SMAIndicator(close=df['Close'], window=50, fillna=True).sma_indicator()
+    df['MA200'] = SMAIndicator(close=df['Close'], window=200, fillna=True).sma_indicator()
     df['Golden Cross'] = (df['MA50'] > df['MA200']).astype(int)
+    df["stddev"] = df["Close"].rolling(window=20).std(ddof=0) 
 
     # 결측치 처리
-    df['MA200'].fillna(0, inplace=True) 
+    # df['MA200'].fillna(0, inplace=True) 
 
     # 2. RSI (Relative Strength Index)
-    delta = df['Close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=14).mean()
-    avg_loss = loss.rolling(window=14).mean()
-    rs = avg_gain / avg_loss
-    df['RSI'] = 100 - (100 / (1 + rs))
-
+    rsi_indicator = RSIIndicator(close=df["Close"], window=14, fillna=True)
+    df['RSI'] = rsi_indicator.rsi()
+    
     # 3. 볼린저 밴드 (Bollinger Bands)
-    df['MA20'] = df['Close'].rolling(window=20).mean()
-    df['stddev'] = df['Close'].rolling(window=20).std()
-    df['Upper Band'] = df['MA20'] + (2 * df['stddev'])
-    df['Lower Band'] = df['MA20'] - (2 * df['stddev'])
+    indicator_bb = BollingerBands(close=df['Close'], window=14, window_dev=2)
+    df['Avg Band'] = indicator_bb.bollinger_mavg()
+    df['Upper Band'] = indicator_bb.bollinger_hband()
+    df['Lower Band'] = indicator_bb.bollinger_lband()
 
     # 4. 스나이퍼 매매법 (Sniper Trading)
-    df['Sniper Signal'] = (df['Close'].pct_change() > 0.02).astype(int)
+    df['Sniper Signal'] = (
+        (df['Close'].pct_change() > 0.03) & 
+        (df['Volume'] > df['Volume'].rolling(window=5).mean())
+    ).astype(int)
+
+    # 5. Smart Sniper
+    df["Smart Sniper"] = (
+        (df['Close'].pct_change() > 0.03) &
+        (df['Volume'] > df['Volume'].rolling(window=5).mean()) &
+        (df["RSI"] < 30)
+    ).astype(int)
+
+    print(real_start_date)
+
+    # 200개 전 데이터 버림
+    # if len(df) > 200:
+    #     df = df.iloc[200:].copy()        
+    # df = df[df.index >= real_start_date.tz_localize('America/New_York')]
 
     # df = df.where(pd.notnull(df), 0)
     # NaN → 0 처리
     df.fillna(0, inplace=True)
 
+    # 미래 예측치 더함
     df = predict_close_price_with_rf(df)
 
     # 각 영역에 대한 추천 값을 저장
@@ -238,6 +258,7 @@ async def chart_data(req: StockRequest):
         "upperBand": df['Upper Band'].tolist(),
         "lowerBand": df['Lower Band'].tolist(),
         "sniperSignal": df['Sniper Signal'].tolist(),
+        "smartSniper": df['Smart Sniper'].tolist(),
         "recommendGC": final_recommend_gc,  # Golden Cross에 대한 최종 추천
         "recommendRSI": final_recommend_rsi,  # RSI에 대한 최종 추천
         "recommendUpperLower": final_recommend_upper_lower,  # Upper Band에 대한 최종 추천

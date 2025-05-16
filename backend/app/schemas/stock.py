@@ -27,6 +27,7 @@ class PredictionData(BaseModel):
     upperBand: List[float]
     lowerBand: List[float]
     sniperSignal: List[float]
+    smartSniper: List[float]
     recommendGC: str
     recommendRSI: str
     recommendUpperLower: str

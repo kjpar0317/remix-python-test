@@ -1,4 +1,18 @@
 from typing import List, Dict, Any
+import pandas as pd
+from dateutil.relativedelta import relativedelta
+
+def subtract_timeframe(end_date: pd.Timestamp, timeframe: str) -> pd.Timestamp:
+    number = int(''.join(filter(str.isdigit, timeframe)))
+    
+    if 'mo' in timeframe:
+        return end_date - relativedelta(months=number)
+    elif 'y' in timeframe:
+        return end_date - relativedelta(years=number)
+    elif 'd' in timeframe:
+        return end_date - pd.Timedelta(days=number)
+    else:
+        raise ValueError(f"Unsupported timeframe unit in {timeframe}")
 
 def generate_recommendations(content: str) -> List[Dict[str, Any]]:
     # 투자 추천 생성
