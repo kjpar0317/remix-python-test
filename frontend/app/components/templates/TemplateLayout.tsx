@@ -4,9 +4,9 @@ export default function TemplateLayout({ children }: {
     children: React.ReactNode;
 }) {
     return (
-      <div>
+      <div className="w-full h-full flex justify-center">
         <Header />
-        <main className="p-4">{children}</main>
+        <main className="p-4 mt-[50px] w-full md:mt-[72px] md:w-11/12">{children}</main>
       </div>
     );
 }
