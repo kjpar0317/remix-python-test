@@ -33,6 +33,9 @@ export default defineConfig({
 			}
 		}
 	},
+	resolve: {
+		dedupe: ['react', 'react-dom'], // ✅ React 중복 제거
+	},
 	optimizeDeps: {
 		entries: ["src/**/*.tsx", "src/**/*.ts"],
 	}

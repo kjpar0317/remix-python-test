@@ -1,7 +1,7 @@
 import type { ActionData } from "./+types";
 
 import { useRef } from "react";
-import { useActionData, Form } from "@remix-run/react";
+import { Form, useActionData, useNavigation } from "@remix-run/react";
 import html2canvas from "html2canvas-oklch";
 import { jsPDF } from "jspdf";
 
@@ -16,10 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import InnerLoading from "~/components/layouts/common/InnerLoading";
 import { action } from "./action";
 
 export default function Dashboard() {
     const actionData = useActionData<ActionData>();
+    const navigation = useNavigation();
+    const isLoading = navigation.state === "submitting" || navigation.state === "loading";
     const componentRef = useRef<HTMLDivElement>(null);
   
     async function handlePrint() {
@@ -98,7 +101,10 @@ export default function Dashboard() {
                 <SelectItem value="y">년</SelectItem>
               </SelectContent>
             </Select>          
-            <Button type="submit">Load</Button>
+            <Button type="submit">
+              <InnerLoading isLoading={isLoading}/>
+              Load
+              </Button>
           </Form>
           <Button onClick={handlePrint}>PDF</Button>
           <div ref={componentRef}>
