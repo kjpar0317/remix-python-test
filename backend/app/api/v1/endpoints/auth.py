@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 
 from app.core.auth import authenticate, create_access_token
 from app.core.database import database
@@ -9,10 +9,8 @@ router = APIRouter()
 
 # 엔드포인트 정의
 @router.post("/login", response_model=AuthRS)
-async def login(request: Member):
-    print(request)
-
-    member = await authenticate(id=request.email, passwd=request.passwd, db=database)
+async def login(username: str = Form(...), password: str = Form(...)):
+    member = await authenticate(id=username, passwd=password, db=database)
 
     if member is None:
         raise HTTPException(404, "로그인 실패")

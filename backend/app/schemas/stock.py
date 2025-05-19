@@ -21,13 +21,21 @@ class StockRequest(BaseModel):
 class PredictionData(BaseModel):
     dates: List[str]
     close: List[float]
+    lstmClose: List[float]
+    cnnClose: List[float]
     ma200: List[float]
     goldenCross: List[int]
     rsi: List[float]
     upperBand: List[float]
     lowerBand: List[float]
+    bollingerBreakoutUpper: List[float]
+    bollingerBreakoutLower: List[float]
     sniperSignal: List[float]
     smartSniper: List[float]
+    doubleBottom: List[float]
+    doubleTop: List[float]
+    headAndShoulders: List[float]
+    inverseHeadAndShoulders: List[float]
     recommendGC: str
     recommendRSI: str
     recommendUpperLower: str

@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    JWT_SECRET: str = "TEST_SECRET_DO_NOT_USE_IN_PROD"
+    JWT_SECRET: str = "TEST_SECRET_DO_NOT_USE_IN_PROD_PYTHON_BACKEND-TEST_SECRET_DO_NOT_USE_IN_PROD_PYTHON_BACKEND"
     ALGORITHM: str = "HS256"
 
     # 60 minutes * 24 hours * 8 days = 8 days

@@ -16,8 +16,6 @@ import { ko } from 'date-fns/locale';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
@@ -38,6 +36,8 @@ interface StockChartProps {
   data: {
     dates: string[];
     close: number[];
+    lstmClose: number[];
+    cnnClose: number[];
     ma200: number[];
     rsi: number[];
     upperBand: number[];
@@ -73,7 +73,7 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: '주가',
             data: data.close,
-            borderColor: '#2563eb',
+            borderColor: '#3b82f6', // 밝은 파란색
             borderWidth: 2,
             fill: false,
             yAxisID: 'y'
@@ -81,7 +81,7 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: 'RSI',
             data: data.rsi,
-            borderColor: '#dc2626',
+            borderColor: '#ef4444', // 선명한 빨간색
             borderWidth: 1,
             fill: false,
             yAxisID: 'y1'
@@ -89,7 +89,7 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: '상단밴드',
             data: data.upperBand,
-            borderColor: '#22c55e',
+            borderColor: '#10b981', // 에메랄드 그린
             borderWidth: 1,
             borderDash: [5, 5],
             fill: false,
@@ -98,20 +98,38 @@ export default function StockChart({ data }: StockChartProps) {
           {
             label: '하단밴드',
             data: data.lowerBand,
-            borderColor: '#bbf7d0',
+            borderColor: '#14b8a6', // 틸 컬러
             borderWidth: 1,
             borderDash: [5, 5],
             fill: false,
             yAxisID: 'y'
           },
           {
-            label: '스나이퍼 시그널',            
-            data: data.dates.map((date, i) => ({ x: date, y: data.sniperSignal[i] })),
-            type: 'scatter',
-            pointBackgroundColor: '#ffc658',
-            showLine: false,
-            yAxisID: 'ySignal'
+            label: 'LSTM',
+            data: data.lstmClose,
+            borderColor: '#8b5cf6', // 보라색
+            borderWidth: 1,
+            borderDash: [5, 5],
+            fill: false,
+            yAxisID: 'y'
+          },
+          {
+            label: 'CNN',
+            data: data.cnnClose,
+            borderColor: '#f59e0b', // 주황색
+            borderWidth: 1,
+            borderDash: [5, 5],
+            fill: false,
+            yAxisID: 'y'
           }
+          // {
+          //   label: '스나이퍼 시그널',            
+          //   data: data.dates.map((date, i) => ({ x: date, y: data.sniperSignal[i] })),
+          //   type: 'scatter',
+          //   pointBackgroundColor: '#ffc658',
+          //   showLine: false,
+          //   yAxisID: 'ySignal'
+          // }
         ]
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
       } as any,

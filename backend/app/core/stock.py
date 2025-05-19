@@ -14,6 +14,28 @@ def subtract_timeframe(end_date: pd.Timestamp, timeframe: str) -> pd.Timestamp:
     else:
         raise ValueError(f"Unsupported timeframe unit in {timeframe}")
 
+def get_final_rsi_recommendation(recommendations):
+    strong_buy = recommendations.count("강력매수")
+    buy = recommendations.count("매수")
+    # neutral = recommendations.count("중립")
+    sell = recommendations.count("매도")
+    strong_sell = recommendations.count("강력매도")
+    
+    # 가중치 부여
+    buy_score = (strong_buy * 2) + buy
+    sell_score = (strong_sell * 2) + sell
+    
+    if buy_score > sell_score and strong_buy > 0:
+        return "강력매수"
+    elif buy_score > sell_score:
+        return "매수"
+    elif sell_score > buy_score and strong_sell > 0:
+        return "강력매도"
+    elif sell_score > buy_score:
+        return "매도"
+    else:
+        return "중립"
+    
 def generate_recommendations(content: str) -> List[Dict[str, Any]]:
     # 투자 추천 생성
     short_term_confidence = 0.65 if "긍정적" in content else 0.45

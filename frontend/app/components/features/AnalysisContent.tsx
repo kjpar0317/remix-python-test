@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
+
 import SkeletonCard from "~/components/layouts/skeletons/SkeletonCard";
 import MarkdownViewer from "~/components/editors/MarkdownViewer";
 
@@ -20,8 +21,8 @@ interface StockAnalysisData {
 }
 
 interface StockAnalysisProps {
-    ticker: string
-    timeframe: string
+  ticker: string
+  timeframe: string
 }
 
 export default function StockAnalysis({ ticker, timeframe }: StockAnalysisProps) {
@@ -35,8 +36,11 @@ export default function StockAnalysis({ ticker, timeframe }: StockAnalysisProps)
       setLoading(true)
       fetch("/api/stock/analysis", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticker, timeframe }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: 'include'  // 쿠키를 포함하여 요청
       })
         .then((res) => {
           if (!res.ok) throw new Error(res.statusText)

@@ -46,22 +46,22 @@ export default function Login() {
                     <Form method="post">
                         <div>
                             <Label
-                                htmlFor="email"
+                                htmlFor="username"
                                 className="text-sm font-medium leading-none text-gray-800 mb-1"
                             >
                                 ID
                             </Label>
-                            <Input name="email" defaultValue="test" placeholder="이메일을 입력하여 주세요."/>
+                            <Input name="username" defaultValue="test" placeholder="이메일을 입력하여 주세요."/>
                         </div>
                         <div className="mt-6 w-full">
                             <Label 
-                                htmlFor="passwd"
+                                htmlFor="password"
                                 className="text-sm font-medium leading-none text-gray-800 mb-1"
                             >
                                 Password
                             </Label>
                             <div className="relative flex items-center justify-center">
-                                <Input name="passwd" type="password" defaultValue="test" placeholder="비밀번호를 입력하여 주세요."/>
+                                <Input name="password" type="password" defaultValue="test" placeholder="비밀번호를 입력하여 주세요."/>
                                 <div className="absolute right-0 mt-2 mr-3 cursor-pointer">
                                     <svg
                                         role="banner"

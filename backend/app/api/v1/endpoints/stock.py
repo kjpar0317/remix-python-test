@@ -3,16 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.callbacks.tracers import LangChainTracer
+from datetime import timedelta
 import yfinance as yf
-from ta.trend import SMAIndicator
-from ta.momentum import RSIIndicator
-from ta.volatility import BollingerBands
 import pandas as pd
 
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
-from app.core.stock import subtract_timeframe, generate_recommendations, analyze_news_sentiment
-from app.core.stock_indicators import predict_close_price_with_rf
+from app.core.stock import subtract_timeframe, get_final_rsi_recommendation, generate_recommendations, analyze_news_sentiment
+from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_price_with_lstm_cnn
 
 router = APIRouter()
 
@@ -138,52 +136,20 @@ async def chart_data(req: StockRequest):
 
     end_date = pd.Timestamp.today()
     real_start_date = subtract_timeframe(end_date, req.timeframe)
-    # start_date = real_start_date - timedelta(days=200)
-    # df = stock_data.history(start=start_date, end=end_date)
-    df = stock_data.history(start=real_start_date, end=end_date)
+    start_date = real_start_date - timedelta(days=200)
+    df = stock_data.history(start=start_date, end=end_date)
+    # df = stock_data.history(start=real_start_date, end=end_date)
 
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
+    # df["LSTM Close"] = df["Close"]
+    # df["CNN Close"] = df["Close"]
 
-    # 1. 골든 크로스 (Golden Cross)
-    # df = calculate_golden_cross(df)
-    df['MA20'] = SMAIndicator(close=df['Close'], window=20, fillna=True).sma_indicator()
-    df['MA50'] = SMAIndicator(close=df['Close'], window=50, fillna=True).sma_indicator()
-    df['MA200'] = SMAIndicator(close=df['Close'], window=200, fillna=True).sma_indicator()
-    df['Golden Cross'] = (df['MA50'] > df['MA200']).astype(int)
-    df["stddev"] = df["Close"].rolling(window=20).std(ddof=0) 
+    # ta 계산
+    df = calc_price_with_ta(df)
 
-    # 결측치 처리
-    # df['MA200'].fillna(0, inplace=True) 
-
-    # 2. RSI (Relative Strength Index)
-    rsi_indicator = RSIIndicator(close=df["Close"], window=14, fillna=True)
-    df['RSI'] = rsi_indicator.rsi()
-    
-    # 3. 볼린저 밴드 (Bollinger Bands)
-    indicator_bb = BollingerBands(close=df['Close'], window=14, window_dev=2)
-    df['Avg Band'] = indicator_bb.bollinger_mavg()
-    df['Upper Band'] = indicator_bb.bollinger_hband()
-    df['Lower Band'] = indicator_bb.bollinger_lband()
-
-    # 4. 스나이퍼 매매법 (Sniper Trading)
-    df['Sniper Signal'] = (
-        (df['Close'].pct_change() > 0.03) & 
-        (df['Volume'] > df['Volume'].rolling(window=5).mean())
-    ).astype(int)
-
-    # 5. Smart Sniper
-    df["Smart Sniper"] = (
-        (df['Close'].pct_change() > 0.03) &
-        (df['Volume'] > df['Volume'].rolling(window=5).mean()) &
-        (df["RSI"] < 30)
-    ).astype(int)
-
-    print(real_start_date)
-
-    # 200개 전 데이터 버림
-    # if len(df) > 200:
-    #     df = df.iloc[200:].copy()        
-    # df = df[df.index >= real_start_date.tz_localize('America/New_York')]
+    # ta 계산 후 200일치 + 된 거 날림
+    real_start_date = real_start_date.tz_localize(df.index.tz)
+    df = df[df.index >= real_start_date]
 
     # df = df.where(pd.notnull(df), 0)
     # NaN → 0 처리
@@ -191,6 +157,8 @@ async def chart_data(req: StockRequest):
 
     # 미래 예측치 더함
     df = predict_close_price_with_rf(df)
+
+    print(df)
 
     # 각 영역에 대한 추천 값을 저장
     recommend_gc = []
@@ -218,10 +186,10 @@ async def chart_data(req: StockRequest):
             recommend_rsi.append("강력매수")
         elif latest_rsi < 40:
             recommend_rsi.append("매수")
+        elif latest_rsi > 60:
+            recommend_rsi.append("매도")            
         elif latest_rsi > 70:
             recommend_rsi.append("강력매도")
-        elif latest_rsi > 60:
-            recommend_rsi.append("매도")
 
         # Upper Band와 Lower Band에 대한 추천
         if latest_close > latest_upper:
@@ -242,7 +210,7 @@ async def chart_data(req: StockRequest):
 
     # 1년치 데이터에 대해 각 추천을 종합하여 최종 추천을 내림
     final_recommend_gc = "매수" if recommend_gc.count("매수") > recommend_gc.count("매도") else "매도"
-    final_recommend_rsi = "강력매수" if recommend_rsi.count("강력매수") > recommend_rsi.count("매도") else "매도"
+    final_recommend_rsi = get_final_rsi_recommendation(recommend_rsi)
     final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
     final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
 
@@ -252,13 +220,21 @@ async def chart_data(req: StockRequest):
     result = {
         "dates": df['Date'].tolist(),
         "close": df['Close'].tolist(),
+        "lstmClose": df['LSTM Close'].tolist(),
+        "cnnClose": df['CNN Close'].tolist(),
         "ma200": df['MA200'].tolist(),
         "goldenCross": df['Golden Cross'].tolist(),
         "rsi": df['RSI'].tolist(),
         "upperBand": df['Upper Band'].tolist(),
         "lowerBand": df['Lower Band'].tolist(),
+        "bollingerBreakoutUpper": df["Bollinger Breakout Upper"].tolist(),
+        "bollingerBreakoutLower": df["Bollinger Breakout Lower"].tolist(),
         "sniperSignal": df['Sniper Signal'].tolist(),
         "smartSniper": df['Smart Sniper'].tolist(),
+        "doubleBottom": df["Double Bottom"].tolist(),
+        "doubleTop": df["Double Top"].tolist(),
+        "headAndShoulders": df["Head and Shoulders"].tolist(),
+        "inverseHeadAndShoulders": df["Inverse Head and Shoulders"].tolist(),
         "recommendGC": final_recommend_gc,  # Golden Cross에 대한 최종 추천
         "recommendRSI": final_recommend_rsi,  # RSI에 대한 최종 추천
         "recommendUpperLower": final_recommend_upper_lower,  # Upper Band에 대한 최종 추천
@@ -266,3 +242,31 @@ async def chart_data(req: StockRequest):
     }
 
     return result
+
+@router.post("/test")
+async def post_test(req: StockRequest):
+    ticker = req.ticker
+    stock_data = yf.Ticker(ticker)
+    end_date = pd.Timestamp.today()
+    real_start_date = subtract_timeframe(end_date, req.timeframe)
+    start_date = real_start_date - timedelta(days=200)
+    df = stock_data.history(start=start_date, end=end_date)
+    # df = stock_data.history(start=real_start_date, end=end_date)
+
+    print(df)
+
+    print("-----------------------------------------")
+
+    real_start_date = real_start_date.tz_localize(df.index.tz)
+    df = df[df.index >= real_start_date]
+
+    print(df)
+
+    df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
+
+
+
+
+    # print(calc_price_with_lstm_cnn(df))
+
+    return True
