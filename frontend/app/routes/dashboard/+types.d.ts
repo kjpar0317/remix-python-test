@@ -1,1 +1,0 @@
-export type ActionData = ReturnType<typeof action>;

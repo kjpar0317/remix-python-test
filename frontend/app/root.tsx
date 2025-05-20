@@ -1,15 +1,16 @@
+import type { LinksFunction } from "@remix-run/node";
+
 import {
 	Links,
 	Meta,
 	Outlet,
 	Scripts,
 	ScrollRestoration,
-	useMatches,
+	useLoaderData,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import styles from "~/tailwind.css?url"
-import TemplateLayout from "./components/templates/TemplateLayout";
+import styles from "~/tailwind.css?url";
 
 export const links: LinksFunction = () => [
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -25,26 +26,24 @@ export const links: LinksFunction = () => [
 	{ rel: "stylesheet", href: styles },
 ];
 
-export default function App() {
-	const matches = useMatches();
-  	// 현재 라우트 중 noLayout 설정이 되어 있는지 확인
-  	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  	const noLayout = matches.some((match: any) => match.handle?.noLayout);
-	const content = <Outlet />;
+const queryClient = new QueryClient();
 
+export default function App() {
 	return (
-	  <html lang="ko">
-		<head>
-			<meta charSet="utf-8" />
-			<meta name="viewport" content="width=device-width, initial-scale=1" />
-			<Meta />
-			<Links />
-		</head>
-		<body className="w-full h-full m-0">
-			{noLayout ? content : <TemplateLayout>{content}</TemplateLayout>}
-			<ScrollRestoration />
-			<Scripts />
-		</body>
-	  </html>
+		<html lang="ko">
+			<head>
+				<meta charSet="utf-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<Meta />
+				<Links />
+			</head>
+			<body className="w-full h-full m-0">
+				<QueryClientProvider client={queryClient}>
+					<Outlet />
+				</QueryClientProvider>
+				<ScrollRestoration />
+				<Scripts />
+			</body>
+		</html>
 	);
 }

@@ -1,7 +1,7 @@
 import { vitePlugin as remix } from "@remix-run/dev";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import tailwindcss from '@tailwindcss/vite';
 
 declare module "@remix-run/node" {
 	interface Future {
@@ -25,18 +25,18 @@ export default defineConfig({
 	],
 	server: {
 		proxy: {
-			'/api': {
-				target: 'http://localhost:8000',
+			"/api": {
+				target: "http://localhost:8000",
 				changeOrigin: true,
 				secure: false,
-				rewrite: (path) => path.replace(/^\/api/, '/api/v1')
-			}
-		}
+				rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
+			},
+		},
 	},
 	resolve: {
-		dedupe: ['react', 'react-dom'], // ✅ React 중복 제거
+		dedupe: ["react", "react-dom"], // ✅ React 중복 제거
 	},
 	optimizeDeps: {
 		entries: ["src/**/*.tsx", "src/**/*.ts"],
-	}
+	},
 });

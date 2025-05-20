@@ -1,21 +1,22 @@
-import type { MetaFunction } from "@remix-run/node";
-
-import { loader } from "./loader";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
+import { getToken } from "~/lib/auth.server";
 
 export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
+	return [
+		{ title: "New Remix App" },
+		{ name: "description", content: "Welcome to Remix!" },
+	];
 };
 
-export default function Index() {
-  return (
-    <div className="flex h-screen justify-center">
-      Index
-    </div>
-  );
+export async function loader({ request }: LoaderFunctionArgs) {
+	const token = getToken(request);
+	if (token) {
+		return redirect("/dashboard");
+	}
+	return redirect("/login");
 }
 
-export const handle = { noLayout: true };
-export { loader };
+export default function Index() {
+	return <div className="flex h-screen justify-center">Index</div>;
+}
