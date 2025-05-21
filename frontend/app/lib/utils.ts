@@ -53,8 +53,7 @@ export function ssrFetcher(
 		method: method,
 	};
 
-	console.log(apiUrl);
-
+	// clientside는 cookie를 포함하여 요청하고 serverside는 Cookie에 직접 set해서 요청
 	if (body instanceof FormData) {
 		requestInit = {
 			...requestInit,
@@ -62,7 +61,6 @@ export function ssrFetcher(
 				Cookie: request.headers.get("cookie") ?? "",
 			},
 			body: body,
-			// credentials: "include",
 		};
 	} else if (body) {
 		requestInit = {
@@ -72,11 +70,8 @@ export function ssrFetcher(
 				Cookie: request.headers.get("cookie") ?? "",
 			},
 			body: JSON.stringify(body),
-			// credentials: "include",
 		};
 	}
-
-	console.log(requestInit);
 
 	return fetch(apiUrl, requestInit)
 		.then((res) => {

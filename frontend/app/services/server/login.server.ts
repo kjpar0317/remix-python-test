@@ -7,9 +7,6 @@ export async function action({
 }: ActionFunctionArgs): Promise<Response> {
 	const formData = await request.formData();
 	const { accessToken } = await ssrFetcher(request, "/api/auth/login", "POST", formData);
-	// const isProduction = process.env.NODE_ENV === "production";
-	// const isHttps = process.env.API_BASE_URL?.startsWith("https://");
-	
 
 	return new Response(null, {
 		status: 302,
@@ -18,12 +15,4 @@ export async function action({
 			Location: "/",	// ssr은 쿠키 바로 전달 안됨
 		},
 	});
-	// return new Response(null, {
-	// 	status: 302,
-	// 	headers: {
-	// 		"Set-Cookie": `token=${accessToken}; Path=/; HttpOnly; SameSite=None; ${isProduction && isHttps ? "Secure;" : ""}`,
-	// 		Location: "/dashboard",
-	// 	},
-	// });
-
 }

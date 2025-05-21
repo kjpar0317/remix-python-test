@@ -9,8 +9,6 @@ export const action: ActionFunction = async ({ request }: ActionFunctionArgs) =>
 	const timeframeUnit = form.get("timeframeUnit")?.toString() || "mo";
 	const timeframe = `${timeframeValue}${timeframeUnit}`;
 
-	console.log(request.headers);
-	console.log(request.headers.get("cookie"));
 	const data = await ssrFetcher(request, "/api/stock/chart-data", "POST", { ticker, timeframe });
 
 	return { ticker, timeframe, ...data };
