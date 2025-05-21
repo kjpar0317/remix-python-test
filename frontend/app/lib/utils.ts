@@ -1,3 +1,5 @@
+import type { ActionFunctionArgs } from "@remix-run/node";
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -17,7 +19,8 @@ export function fetcher(
 	method = "GET",
 	body: any = undefined,
 ) {
-	const fetchOpt: RequestInit = {
+	const apiUrl = process.env.NODE_ENV === "production" ? process.env.API_BASE_URL + url.replace(/^\/api/, ""): url;
+	const requestInit: RequestInit = {
 		method: method,
 		headers: {
 			"Content-Type": "application/json",
@@ -26,10 +29,56 @@ export function fetcher(
 	};
 
 	if (body) {
-		fetchOpt.body = JSON.stringify(body);
+		requestInit.body = JSON.stringify(body);
 	}
 
-	return fetch(url, fetchOpt)
+	return fetch(apiUrl, requestInit)
+		.then((res) => {
+			if (!res.ok) throw new Error(res.statusText);
+			return res.json();
+		})
+		.catch((e: Error) => {
+			console.log(e.message);
+		});
+}
+
+export function ssrFetcher(
+	request: Request,
+	url: string,
+	method = "GET",
+	body: any = undefined
+) {
+	const apiUrl = process.env.API_BASE_URL + url.replace(/^\/api/, "");
+	let requestInit: RequestInit = {
+		method: method,
+	};
+
+	console.log(apiUrl);
+
+	if (body instanceof FormData) {
+		requestInit = {
+			...requestInit,
+			headers: {
+				Cookie: request.headers.get("cookie") ?? "",
+			},
+			body: body,
+			// credentials: "include",
+		};
+	} else if (body) {
+		requestInit = {
+			...requestInit,
+			headers: {
+				"Content-Type": "application/json",
+				Cookie: request.headers.get("cookie") ?? "",
+			},
+			body: JSON.stringify(body),
+			// credentials: "include",
+		};
+	}
+
+	console.log(requestInit);
+
+	return fetch(apiUrl, requestInit)
 		.then((res) => {
 			if (!res.ok) throw new Error(res.statusText);
 			return res.json();

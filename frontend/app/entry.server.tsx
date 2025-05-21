@@ -11,8 +11,20 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
+import { QueryClient, QueryClientProvider, dehydrate } from "@tanstack/react-query";
 
 const ABORT_DELAY = 5_000;
+
+function createApp(remixContext: any, requestUrl: string, queryClient: QueryClient) {
+	const dehydratedState = dehydrate(queryClient);
+
+	return (
+		<QueryClientProvider client={queryClient}>
+			{/* @ts-ignore */}
+			<RemixServer context={{ ...remixContext, dehydratedState }} url={requestUrl} />
+		</QueryClientProvider>
+	);
+}
 
 export default function handleRequest(
 	request: Request,
@@ -24,18 +36,22 @@ export default function handleRequest(
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	loadContext: AppLoadContext,
 ) {
+	const queryClient = new QueryClient();
+
 	return isbot(request.headers.get("user-agent") || "")
 		? handleBotRequest(
 				request,
 				responseStatusCode,
 				responseHeaders,
 				remixContext,
+				queryClient
 			)
 		: handleBrowserRequest(
 				request,
 				responseStatusCode,
 				responseHeaders,
 				remixContext,
+				queryClient
 			);
 }
 
@@ -44,15 +60,12 @@ function handleBotRequest(
 	responseStatusCode: number,
 	responseHeaders: Headers,
 	remixContext: EntryContext,
+	queryClient: QueryClient
 ) {
 	return new Promise((resolve, reject) => {
 		let shellRendered = false;
 		const { pipe, abort } = renderToPipeableStream(
-			<RemixServer
-				context={remixContext}
-				url={request.url}
-				abortDelay={ABORT_DELAY}
-			/>,
+			createApp(remixContext, request.url, queryClient),
 			{
 				onAllReady() {
 					shellRendered = true;
@@ -94,47 +107,7 @@ function handleBrowserRequest(
 	responseStatusCode: number,
 	responseHeaders: Headers,
 	remixContext: EntryContext,
+	queryClient: QueryClient
 ) {
-	return new Promise((resolve, reject) => {
-		let shellRendered = false;
-		const { pipe, abort } = renderToPipeableStream(
-			<RemixServer
-				context={remixContext}
-				url={request.url}
-				abortDelay={ABORT_DELAY}
-			/>,
-			{
-				onShellReady() {
-					shellRendered = true;
-					const body = new PassThrough();
-					const stream = createReadableStreamFromReadable(body);
-
-					responseHeaders.set("Content-Type", "text/html");
-
-					resolve(
-						new Response(stream, {
-							headers: responseHeaders,
-							status: responseStatusCode,
-						}),
-					);
-
-					pipe(body);
-				},
-				onShellError(error: unknown) {
-					reject(error);
-				},
-				onError(error: unknown) {
-					// responseStatusCode = 500;
-					// Log streaming rendering errors from inside the shell.  Don't log
-					// errors encountered during initial shell rendering since they'll
-					// reject and get logged in handleDocumentRequest.
-					if (shellRendered) {
-						console.error(error);
-					}
-				},
-			},
-		);
-
-		setTimeout(abort, ABORT_DELAY);
-	});
+	return handleBotRequest(request, responseStatusCode, responseHeaders, remixContext, queryClient);
 }

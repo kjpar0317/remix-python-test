@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import database
@@ -12,6 +13,14 @@ async def lifespan(app: FastAPI):
     await database.disconnect()
 
 app = FastAPI(title="AI 분석 플랫폼", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:4000"],  # 정확한 주소
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ✅ 전역 의존성으로 JWT 적용
 @app.middleware("http")

@@ -1,30 +1,29 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 
+import { ssrFetcher } from "~/lib/utils";
+
 export async function action({
 	request,
 }: ActionFunctionArgs): Promise<Response> {
 	const formData = await request.formData();
-
-	// Node fetch용 절대 URL 생성
-	const urlObj = new URL(request.url);
-	const apiUrl = `${urlObj.origin}/api/auth/login`;
-	const res = await fetch(apiUrl, {
-		method: "POST",
-		// headers: { "Content-Type": "application/json" },
-		body: formData,
-	});
-
-	if (!res.ok) {
-		throw new Response("Unauthorized", { status: 401 });
-	}
-
-	const { accessToken } = await res.json();
+	const { accessToken } = await ssrFetcher(request, "/api/auth/login", "POST", formData);
+	// const isProduction = process.env.NODE_ENV === "production";
+	// const isHttps = process.env.API_BASE_URL?.startsWith("https://");
+	
 
 	return new Response(null, {
 		status: 302,
 		headers: {
-			"Set-Cookie": `token=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax`,
-			Location: "/dashboard",
+			"Set-Cookie": `token=${accessToken}; Path=/; HttpOnly; SameSite=Lax; Secure;`,
+			Location: "/",	// ssr은 쿠키 바로 전달 안됨
 		},
 	});
+	// return new Response(null, {
+	// 	status: 302,
+	// 	headers: {
+	// 		"Set-Cookie": `token=${accessToken}; Path=/; HttpOnly; SameSite=None; ${isProduction && isHttps ? "Secure;" : ""}`,
+	// 		Location: "/dashboard",
+	// 	},
+	// });
+
 }

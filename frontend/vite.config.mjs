@@ -2,14 +2,15 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import dotenv from "dotenv";
 
-declare module "@remix-run/node" {
-	interface Future {
-		v3_singleFetch: true;
-	}
-}
+dotenv.config();
+
 
 export default defineConfig({
+	define: {
+		'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL),
+	},
 	plugins: [
 		remix({
 			future: {
@@ -22,17 +23,26 @@ export default defineConfig({
 		}),
 		tsconfigPaths(),
 		tailwindcss(),
+		{
+			name: 'handle-well-known',
+			configureServer(server) {
+				server.middlewares.use('/.well-known/appspecific/com.chrome.devtools.json', (req, res, next) => {
+					res.statusCode = 204;
+					res.end();
+				});
+			},
+		},
 	],
 	server: {
 		proxy: {
 			"/api": {
-				target: "http://localhost:8000",
+				target: process.env.API_BASE_URL,
 				changeOrigin: true,
 				secure: false,
-				rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
+				rewrite: (path) => path.replace(/^\/api/, ""),
 			},
 		},
-	},
+	},	
 	resolve: {
 		dedupe: ["react", "react-dom"], // ✅ React 중복 제거
 	},
