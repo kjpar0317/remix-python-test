@@ -36,6 +36,7 @@ async def jwt_global_middleware(request: Request, call_next):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
 
     token = auth.split(" ")[1]
+ 
     try:
         decode_jwt_token(token)
     except Exception as e:

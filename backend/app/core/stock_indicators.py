@@ -33,14 +33,22 @@ def calc_price_with_ta(df: pd.DataFrame) -> pd.DataFrame:
     # df['MA200'].fillna(0, inplace=True) 
 
     # 2. RSI (Relative Strength Index)
-    rsi_indicator = RSIIndicator(close=df["Close"], window=14, fillna=True)
+    rsi_indicator = RSIIndicator(close=df["Close"], window=14, fillna=False)
     df['RSI'] = rsi_indicator.rsi()
+
+    # 앞에 게산 안되어진 데이터 채워넣음
+    df["RSI"]  = df["RSI"].bfill()
     
     # 3. 볼린저 밴드 (Bollinger Bands)
     indicator_bb = BollingerBands(close=df['Close'], window=14, window_dev=2)
     df['Avg Band'] = indicator_bb.bollinger_mavg()
     df['Upper Band'] = indicator_bb.bollinger_hband()
     df['Lower Band'] = indicator_bb.bollinger_lband()
+
+    # 앞에 게산 안되어진 데이터 채워넣음
+    df["Avg Band"]  = df["Avg Band"].bfill()
+    df["Upper Band"] = df["Upper Band"].bfill()
+    df["Lower Band"] = df["Lower Band"].bfill()
 
     df["Bollinger Breakout Upper"] = False
     df["Bollinger Breakout Lower"] = False

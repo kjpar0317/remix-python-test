@@ -2,4 +2,5 @@ from pydantic import BaseModel
 
 # 모델 정의
 class AuthRS(BaseModel):
-    accessToken: str
+    token_type: str
+    access_token: str

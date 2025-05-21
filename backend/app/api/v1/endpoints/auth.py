@@ -15,4 +15,4 @@ async def login(username: str = Form(...), password: str = Form(...)):
     if member is None:
         raise HTTPException(404, "로그인 실패")
     
-    return { "accessToken": create_access_token(sub=member.email) }
+    return { "token_type": "bearer", "access_token": create_access_token(sub=member.email) }

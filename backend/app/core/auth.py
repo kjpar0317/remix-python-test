@@ -83,11 +83,14 @@ def decode_jwt_token(token: str) -> dict:
         )
 
 async def get_token_from_cookie(request: Request) -> str:
-    # 1. Authorization 헤더 확인
-    auth_header: Optional[str] = request.headers.get("Authorization")
+    # print(token_from_header)
 
-    if auth_header and auth_header.startswith("Bearer "):
-        return auth_header.split("Bearer ")[1]
+    # if token_from_header and token_from_header != "undefined":
+    #     # 1. Authorization 헤더 확인
+    #     auth_header: Optional[str] = request.headers.get("Authorization")
+
+    #     if auth_header and auth_header.startswith("Bearer "):
+    #         return auth_header.split("Bearer ")[1]
 
     # 2. Cookie에서 access_token 확인
     token = request.cookies.get("token")
@@ -108,9 +111,6 @@ async def get_current_user(token: Annotated[str, Depends(get_token_from_cookie)]
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
-    if not token:
-        token = get_token_from_cookie()
 
     try:
         payload = decode_jwt_token(token)

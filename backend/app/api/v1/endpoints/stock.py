@@ -137,8 +137,8 @@ async def chart_data(req: StockRequest):
     end_date = pd.Timestamp.today()
     real_start_date = subtract_timeframe(end_date, req.timeframe)
     start_date = real_start_date - timedelta(days=200)
-    df = stock_data.history(start=start_date, end=end_date)
-    # df = stock_data.history(start=real_start_date, end=end_date)
+    # df = stock_data.history(start=start_date, end=end_date)
+    df = stock_data.history(start=real_start_date, end=end_date)
 
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
     # df["LSTM Close"] = df["Close"]
@@ -249,11 +249,11 @@ async def post_test(req: StockRequest):
     stock_data = yf.Ticker(ticker)
     end_date = pd.Timestamp.today()
     real_start_date = subtract_timeframe(end_date, req.timeframe)
-    start_date = real_start_date - timedelta(days=200)
+    # start_date = real_start_date - timedelta(days=200)
 
-    print(f"start_date: {start_date}")
+    # print(f"start_date: {start_date}")
 
-    df = stock_data.history(start=start_date, end=end_date)
+    df = stock_data.history(start=real_start_date, end=end_date)
     # df = stock_data.history(start=real_start_date, end=end_date)
 
     print(df)
