@@ -15,7 +15,7 @@ from datetime import datetime
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-indicator_features = ['MA20', 'MA50', 'MA200', 'RSI', 'stddev', 'Upper Band', 'Lower Band', 'Bollinger Breakout Upper', 'Bollinger Breakout Lower', 'Sniper Signal', 'Smart Sniper', 'Double Bottom', 'Double Top', 'Head and Shoulders', 'Inverse Head and Shoulders']
+indicator_features = ['MA20', 'MA50', 'MA200', 'Golden Cross', 'RSI', 'stddev', 'Upper Band', 'Lower Band', 'Bollinger Breakout Upper', 'Bollinger Breakout Lower', 'MACD', 'Signal', 'Sniper Signal', 'Smart Sniper', 'Double Bottom', 'Double Top', 'Head and Shoulders', 'Inverse Head and Shoulders']
 
 """
     ta indicator 계산산
@@ -71,6 +71,11 @@ def calc_price_with_ta(df: pd.DataFrame) -> pd.DataFrame:
         (df["RSI"] < 30)
     ).astype(int)
 
+    df['EMA_short'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['EMA_long'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = df['EMA_short'] - df['EMA_long']
+    df['Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+
     # 이중 바닥 / 이중 천장
     close = df['Close'].values[-20:]
     troughs = (np.diff(np.sign(np.diff(close))) > 0).nonzero()[0] + 1
@@ -112,8 +117,8 @@ def predict_close_price_with_rf(df: pd.DataFrame):
     # 결측치(NA/NaN 값)를 제거
     df.dropna()
 
-    # df['LSTM Close'] = df['Close']
-    # df['CNN Close'] = df['Close']
+    df['LSTM Close'] = df['Close']
+    df['CNN Close'] = df['Close']
 
     x = train_df[indicator_features]
     y = train_df['Close']
@@ -155,12 +160,15 @@ def predict_close_price_with_rf(df: pd.DataFrame):
             'MA20': latest['MA20'],
             'MA50': latest['MA50'],
             'MA200': ma200_value,
+            'Golden Cross': latest['Golden Cross'],
             'RSI': latest['RSI'],
             'stddev': latest['stddev'],
             'Upper Band': latest['Upper Band'],
             'Lower Band': latest['Lower Band'],
             'Bollinger Breakout Upper': latest['Bollinger Breakout Upper'], 
             'Bollinger Breakout Lower': latest['Bollinger Breakout Lower'],
+            'MACD': latest['MACD'],
+            'Signal': latest['Signal'],
             'Sniper Signal': latest['Sniper Signal'],
             'Smart Sniper': latest['Smart Sniper'],
             'Double Bottom': latest['Double Bottom'], 
@@ -188,7 +196,7 @@ def predict_close_price_with_rf(df: pd.DataFrame):
         future_preds.append({
             'Date': future_dates[i].strftime('%Y-%m-%d'),
             **safe_row,
-            'Golden Cross': 0,
+            # 'Golden Cross': 0,
             'Close': predicted_close,
             'LSTM Close': lstm_cnn_close['lstm'],
             'CNN Close': lstm_cnn_close['cnn']
@@ -198,7 +206,7 @@ def predict_close_price_with_rf(df: pd.DataFrame):
         df = pd.concat([df, pd.DataFrame([{
             'Date': future_dates[i].strftime('%Y-%m-%d'),
             **new_row,
-            'Golden Cross': 0,
+            # 'Golden Cross': 0,
             'Close': predicted_close,
             'LSTM Close': lstm_cnn_close['lstm'],
             'CNN Close': lstm_cnn_close['cnn']

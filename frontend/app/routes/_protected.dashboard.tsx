@@ -72,6 +72,19 @@ export default function Dashboard() {
 		<div className="flex h-screen justify-center">
 			<div className="flex flex-col items-stretch gap-1 w-full max-w-5xl mx-auto mt-3">
 				<Form method="post" className="mb-1 flex gap-2">
+				<Select name="currency" defaultValue="USD"> 
+					<SelectTrigger> 
+						<SelectValue /> 
+					</SelectTrigger> 
+					<SelectContent> 
+						<SelectItem value="USD">USD</SelectItem> 
+						<SelectItem value="KRW">KRW</SelectItem> 
+						<SelectItem value="JPY">JPY</SelectItem> 
+						<SelectItem value="EUR">EUR</SelectItem> 
+						<SelectItem value="GBP">GBP</SelectItem> 
+						<SelectItem value="CNY">CNY</SelectItem> 
+					</SelectContent> 
+				</Select>
 					<Input
 						name="ticker"
 						type="text"

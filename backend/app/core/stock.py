@@ -1,7 +1,26 @@
 from typing import List, Dict, Any
 import pandas as pd
+import yfinance as yf
 from dateutil.relativedelta import relativedelta
 
+def get_currency_rate(base_currency: str, target_currency: str) -> float:
+    if base_currency == target_currency:
+        return 1.0
+    
+    # 환율 데이터 가져오기 (예: USD/KRW의 경우 'USDKRW=X')
+    currency_pair = f"{base_currency}{target_currency}=X"
+   # print(f"currency_pair: {currency_pair}")
+
+    try:
+        currency_data = yf.download(currency_pair, period='1d')['Close'][currency_pair]
+        # print(f"currency_data: {currency_data}")
+        # print(f"currency_data rate: {currency_data.iloc[-1]}")
+
+        return currency_data.iloc[-1] if not currency_data.empty else 1.0
+    except Exception:
+        # print("no currency_data")
+        return 1.0
+    
 def subtract_timeframe(end_date: pd.Timestamp, timeframe: str) -> pd.Timestamp:
     number = int(''.join(filter(str.isdigit, timeframe)))
     

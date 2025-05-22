@@ -22,6 +22,7 @@
 	--animate-wiggle: wiggle 1s ease-in-out infinite;
 	--animate-rotate-3d: rotate-3d 2s ease-in-out;
 	--animate-expand: expand 0.5s ease-in-out forwards;
+	--animate-text: text 5s ease infinite;
 
 	/* animate-[fade-in-scale-in_0.5s_ease-out_forwards] */
 	@keyframes fade-in-scale {
@@ -159,9 +160,20 @@
 
 	/* animate-[expand_0.5s_ease-in-out_forwards] */
 	@keyframes expand {
-    0% { width: '0' },
-    100% { width: '100%' }
-  }
+		0% { width: '0' },
+		100% { width: '100%' }
+	}
+	
+	@keyframes text {
+		0%, 100% {
+			background-size: 200% 200%;
+			background-position: left center;
+		}
+		50% {
+			background-size: 200% 200%;
+			background-position: right center;
+		}
+	}
 }
 
 /*

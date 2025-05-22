@@ -32,6 +32,8 @@ async def jwt_global_middleware(request: Request, call_next):
 
     auth = request.headers.get("Authorization")
 
+    print(f"middleware jwt check: {auth}")
+
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
 

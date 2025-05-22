@@ -9,7 +9,7 @@ import pandas as pd
 
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
-from app.core.stock import subtract_timeframe, get_final_rsi_recommendation, generate_recommendations, analyze_news_sentiment
+from app.core.stock import get_currency_rate, subtract_timeframe, get_final_rsi_recommendation, generate_recommendations, analyze_news_sentiment
 from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_price_with_lstm_cnn
 
 router = APIRouter()
@@ -136,11 +136,27 @@ async def chart_data(req: StockRequest):
 
     end_date = pd.Timestamp.today()
     real_start_date = subtract_timeframe(end_date, req.timeframe)
-    start_date = real_start_date - timedelta(days=200)
+    # start_date = real_start_date - timedelta(days=200)
     # df = stock_data.history(start=start_date, end=end_date)
     df = stock_data.history(start=real_start_date, end=end_date)
 
+    if df.empty:
+        return None
+
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
+
+    # # 통화 변환 적용
+    base_currency = stock_data.info.get('currency', 'USD')  # 주식의 기본 통화
+    target_currency = req.currency  # 사용자가 요청한 통화
+
+    if base_currency != target_currency:
+        currency_rate = get_currency_rate(base_currency, target_currency)
+
+        # print(f"base: {base_currency}, target: {target_currency}, rate: {currency_rate}")
+        # 가격 관련 컬럼들에 환율 적용
+        price_columns = ['Open', 'High', 'Low', 'Close']
+        df[price_columns] = df[price_columns].multiply(currency_rate)
+
     # df["LSTM Close"] = df["Close"]
     # df["CNN Close"] = df["Close"]
 
@@ -148,17 +164,14 @@ async def chart_data(req: StockRequest):
     df = calc_price_with_ta(df)
 
     # ta 계산 후 200일치 + 된 거 날림
-    real_start_date = real_start_date.tz_localize(df.index.tz)
-    df = df[df.index >= real_start_date]
+    # real_start_date = real_start_date.tz_localize(df.index.tz)
+    # df = df[df.index >= real_start_date]
 
-    # df = df.where(pd.notnull(df), 0)
     # NaN → 0 처리
     df.fillna(0, inplace=True)
 
     # 미래 예측치 더함
     df = predict_close_price_with_rf(df)
-
-    print(df)
 
     # 각 영역에 대한 추천 값을 저장
     recommend_gc = []
@@ -208,13 +221,41 @@ async def chart_data(req: StockRequest):
         else:  # Sniper Signal이 0이면 매도
             recommend_sniper_signal.append("매도")
 
+    # 내일 데이터에 대한 MACD - signal 추천을
+    after_df = df[df['Date'] == end_date.strftime('%Y-%m-%d')]
+
+    final_recommend_macd_signal = '홀드'
+    final_recommend_total_desicion = '홀드'
+
+    # Series가 아니라 단일 값으로 비교해야 함
+    if not after_df.empty:
+        ma50 = after_df["MA50"].values[0]
+        ma200 = after_df["MA200"].values[0]
+        current_price = after_df["Close"].values[0]
+        macd = after_df['MACD'].values[0]
+        signal = after_df['Signal'].values[0]
+        golden_cross = after_df["Golden Cross"].values[0]
+        rsi = after_df["RSI"].values[0]
+        lstm_close = after_df["LSTM Close"].values[0]
+        double_top = after_df["Double Top"].values[0]
+        head_and_shoulders = after_df["Head and Shoulders"].values[0]
+
+        if macd > signal:
+            final_recommend_macd_signal = '매수'
+        elif macd < signal:
+            final_recommend_macd_signal = '매도'
+
+        if golden_cross and rsi < 70 and current_price > ma200 and lstm_close > current_price:
+            final_recommend_total_desicion = "매수"
+        elif double_top or head_and_shoulders or rsi > 70 or current_price < ma50:
+            final_recommend_total_desicion = "매도"
+
+
     # 1년치 데이터에 대해 각 추천을 종합하여 최종 추천을 내림
     final_recommend_gc = "매수" if recommend_gc.count("매수") > recommend_gc.count("매도") else "매도"
     final_recommend_rsi = get_final_rsi_recommendation(recommend_rsi)
     final_recommend_upper_lower = "매수" if recommend_upper_lower.count("매수") > recommend_upper_lower.count("매도") else "매도"
     final_recommend_sniper_signal = "매수" if recommend_sniper_signal.count("매수") > recommend_sniper_signal.count("매도") else "매도"
-
-    # print(df)
 
     # 예측 데이터 반환
     result = {
@@ -229,16 +270,20 @@ async def chart_data(req: StockRequest):
         "lowerBand": df['Lower Band'].tolist(),
         "bollingerBreakoutUpper": df["Bollinger Breakout Upper"].tolist(),
         "bollingerBreakoutLower": df["Bollinger Breakout Lower"].tolist(),
+        "macd": df["MACD"].tolist(),
+        "signal": df["Signal"].tolist(),
         "sniperSignal": df['Sniper Signal'].tolist(),
         "smartSniper": df['Smart Sniper'].tolist(),
         "doubleBottom": df["Double Bottom"].tolist(),
         "doubleTop": df["Double Top"].tolist(),
         "headAndShoulders": df["Head and Shoulders"].tolist(),
         "inverseHeadAndShoulders": df["Inverse Head and Shoulders"].tolist(),
+        "recommendMacdSignal": final_recommend_macd_signal,
         "recommendGC": final_recommend_gc,  # Golden Cross에 대한 최종 추천
         "recommendRSI": final_recommend_rsi,  # RSI에 대한 최종 추천
         "recommendUpperLower": final_recommend_upper_lower,  # Upper Band에 대한 최종 추천
-        "recommendSniperSignal": final_recommend_sniper_signal  # Lower Band에 대한 최종 추천
+        "recommendSniperSignal": final_recommend_sniper_signal,  # Lower Band에 대한 최종 추천
+        "recommendTotalDecision": final_recommend_total_desicion
     }
 
     return result

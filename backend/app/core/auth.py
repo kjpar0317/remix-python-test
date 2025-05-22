@@ -1,8 +1,8 @@
 from typing import Optional, MutableMapping, List, Union, Any, Annotated
 from datetime import datetime, timedelta, timezone
-from fastapi import Request, HTTPException, Header, Depends, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
+from fastapi import Request, HTTPException, Depends, status
+from fastapi.security import APIKeyCookie
+# from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm.session import Session
 from jose import jwt, JWTError
 
@@ -14,7 +14,9 @@ JWTPayloadMapping = MutableMapping[
     str, Union[datetime, bool, str, List[str], List[int]]
 ]
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+# 1. 쿠키로 인증하는 Security 정의
+cookie_scheme = APIKeyCookie(name="token", auto_error=False)
 
 async def authenticate(
     *,
@@ -82,30 +84,27 @@ def decode_jwt_token(token: str) -> dict:
             detail="Unexpected error during token decoding",
         )
 
-async def get_token_from_cookie(request: Request) -> str:
-    # print(token_from_header)
+# async def get_token_from_cookie(request: Request, schema_token: Annotated[str | None, Depends(cookie_scheme)]) -> str:
+#     # cookie 토큰 우선 (major)
+#     token = request.cookies.get("token")
 
-    # if token_from_header and token_from_header != "undefined":
-    #     # 1. Authorization 헤더 확인
-    #     auth_header: Optional[str] = request.headers.get("Authorization")
+#     print(f"cookie token: {token}")
+#     print(f"🟡 schema token: {schema_token}")
 
-    #     if auth_header and auth_header.startswith("Bearer "):
-    #         return auth_header.split("Bearer ")[1]
+#     if token:
+#         return token
 
-    # 2. Cookie에서 access_token 확인
-    token = request.cookies.get("token")
+#     if schema_token:
+#         return schema_token
 
-    if token:
-        return token
-
-    # 3. 실패 시 예외
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Not authenticated",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+#     # 3. 실패 시 예외
+#     raise HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Not authenticated",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
     
-async def get_current_user(token: Annotated[str, Depends(get_token_from_cookie)]):
+async def get_current_user(token: Annotated[str, Depends(cookie_scheme)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -113,6 +112,8 @@ async def get_current_user(token: Annotated[str, Depends(get_token_from_cookie)]
     )
 
     try:
+        print(f"result token: {token}")
+
         payload = decode_jwt_token(token)
         username = payload.get("sub")
 

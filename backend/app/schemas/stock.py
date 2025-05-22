@@ -16,6 +16,7 @@ class StockAnalysisResponse(BaseModel):
 class StockRequest(BaseModel):
     ticker: str
     timeframe: str = "6mo"  # e.g., "1mo", "6mo", "1y"
+    currency: str = "USD"
 
 # 주식 예측 결과를 반환할 Pydantic 모델
 class PredictionData(BaseModel):
@@ -30,13 +31,18 @@ class PredictionData(BaseModel):
     lowerBand: List[float]
     bollingerBreakoutUpper: List[float]
     bollingerBreakoutLower: List[float]
+    macd: List[float]
+    signal: List[float]
     sniperSignal: List[float]
     smartSniper: List[float]
+    # macdSignal: List[str]
     doubleBottom: List[float]
     doubleTop: List[float]
     headAndShoulders: List[float]
     inverseHeadAndShoulders: List[float]
+    recommendMacdSignal: str
     recommendGC: str
     recommendRSI: str
     recommendUpperLower: str
     recommendSniperSignal: str
+    recommendTotalDecision: str

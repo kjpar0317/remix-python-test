@@ -8,8 +8,9 @@ export const action: ActionFunction = async ({ request }: ActionFunctionArgs) =>
 	const timeframeValue = form.get("timeframeValue")?.toString() || "1";
 	const timeframeUnit = form.get("timeframeUnit")?.toString() || "mo";
 	const timeframe = `${timeframeValue}${timeframeUnit}`;
+	const currency = form.get("currency")?.toString() || "USD";
 
-	const data = await ssrFetcher(request, "/api/stock/chart-data", "POST", { ticker, timeframe });
+	const data = await ssrFetcher(request, "/api/stock/chart-data", "POST", { ticker, timeframe, currency });
 
-	return { ticker, timeframe, ...data };
+	return { ticker, timeframe, currency, ...data };
 };

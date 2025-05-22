@@ -37,11 +37,14 @@ interface StockChartProps {
 		rsi: number[];
 		upperBand: number[];
 		lowerBand: number[];
+		macd: number[];
+		signal: number[];
 		sniperSignal: number[];
+		recommendMacdSignal: string;
 		recommendGC: string;
 		recommendRSI: string;
 		recommendUpperLower: string;
-		recommendSniperSignal: string;
+		recommendTotalDecision: string;
 	};
 }
 
@@ -205,10 +208,10 @@ export default function StockChart({ data }: StockChartProps) {
 		<div className="w-full">
 			<div className="grid grid-cols-4 gap-4 w-full">
 				{[
-					{ title: "골든크로스", signal: data.recommendGC },
+					{ title: "MACD시그널", signal: data.recommendMacdSignal },
 					{ title: "RSI", signal: data.recommendRSI },
 					{ title: "볼린저밴드", signal: data.recommendUpperLower },
-					{ title: "스나이퍼", signal: data.recommendSniperSignal },
+					{ title: "종합", signal: data.recommendTotalDecision },
 				].map(({ title, signal }) => (
 					<SignalCard key={title} title={title} signal={signal} />
 				))}

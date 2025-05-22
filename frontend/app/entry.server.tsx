@@ -19,10 +19,7 @@ function createApp(remixContext: any, requestUrl: string, queryClient: QueryClie
 	const dehydratedState = dehydrate(queryClient);
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			{/* @ts-ignore */}
-			<RemixServer context={{ ...remixContext, dehydratedState }} url={requestUrl} />
-		</QueryClientProvider>
+		<RemixServer context={{ ...remixContext, dehydratedState }} url={requestUrl} />
 	);
 }
 
