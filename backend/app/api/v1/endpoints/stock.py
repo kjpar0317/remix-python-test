@@ -252,6 +252,13 @@ async def chart_data(req: StockRequest):
             lstm_close > current_price    # AI 예측이 상승 예측
         ):
             final_recommend_total_desicion = '강력매수'
+        elif (
+                rsi > 80 and                # 과매수
+                current_price < ma200 and   # 장기 평균 이하
+                lstm_close < current_price and  # AI 예측이 하락 예측
+                (double_top or head_and_shoulders)  # double top 이거나 head and shoulders 상태
+            ):
+            final_recommend_total_desicion = '강력매도'
         else:
             score = 0
 
@@ -273,22 +280,10 @@ async def chart_data(req: StockRequest):
             print(f"AI가 하락 예측했어? {lstm_close < current_price}")
             print(f"하락 패턴이야? {double_top or head_and_shoulders}")
 
-            # 강력 매도 신호
-            strong_sell = False
-            if (
-                rsi > 80 and
-                current_price < ma200 and
-                lstm_close < current_price and
-                (double_top or head_and_shoulders)
-            ):
-                strong_sell = True
-
             print(f"score: {score}, sell_score: {sell_score}")
 
             # 판단
-            if strong_sell:
-                final_recommend_total_desicion = "강력매도"
-            elif score >= 3 and sell_score <= 1:
+            if score >= 3 and sell_score <= 1:
                 final_recommend_total_desicion = "매수"
             elif sell_score >= 3:
                 final_recommend_total_desicion = "매도"
