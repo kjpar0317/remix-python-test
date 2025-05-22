@@ -10,7 +10,7 @@ import {
 
 export default function Header() {
 	return (
-		<nav className="fixed right-3 top-0 z-[0] flex w-full flex-row items-center justify-between rounded-lg bg-white/30 py-2 backdrop-blur-xl transition-all dark:bg-transparent md:right-[30px] md:top-4 md:w-[calc(100vw_-_8%)] md:p-2 lg:w-[calc(100vw_-_6%)] xl:top-[20px] xl:w-[calc(100vw_-_365px)] 2xl:w-[calc(100vw_-_380px)]">
+		<nav className="fixed right-3 top-0 z-[0] flex w-full md:w-[calc(100vw_-_8%)] flex-row items-center justify-between rounded-lg bg-white/30 py-2 backdrop-blur-xl transition-all dark:bg-transparent md:right-[30px] md:top-4 md:w-[calc(100vw_-_8%)] md:p-2">
 			<div className="ml-[20px] md:ml-[2px]">
 				<h1 className="animate-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 shrink capitalize font-bold bg-clip-text text-transparent text-2xl font-black">
 					TEST

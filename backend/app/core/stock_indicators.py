@@ -26,7 +26,7 @@ def calc_price_with_ta(df: pd.DataFrame) -> pd.DataFrame:
     df['MA20'] = SMAIndicator(close=df['Close'], window=20, fillna=True).sma_indicator()
     df['MA50'] = SMAIndicator(close=df['Close'], window=50, fillna=True).sma_indicator()
     df['MA200'] = SMAIndicator(close=df['Close'], window=200, fillna=True).sma_indicator()
-    df['Golden Cross'] = (df['MA50'] > df['MA200']).astype(int)
+    df['Golden Cross'] = ((df['MA50'] > df['MA200']) & (df['MA50'].shift(1) <= df['MA200'].shift(1))).astype(int)
     df["stddev"] = df["Close"].rolling(window=20).std(ddof=0) 
 
     # 결측치 처리

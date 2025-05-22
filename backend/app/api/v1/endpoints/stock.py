@@ -225,7 +225,7 @@ async def chart_data(req: StockRequest):
     after_df = df[df['Date'] == end_date.strftime('%Y-%m-%d')]
 
     final_recommend_macd_signal = '홀드'
-    final_recommend_total_desicion = '홀드'
+    final_recommend_total_desicion = '보류'
 
     # Series가 아니라 단일 값으로 비교해야 함
     if not after_df.empty:
@@ -245,11 +245,53 @@ async def chart_data(req: StockRequest):
         elif macd < signal:
             final_recommend_macd_signal = '매도'
 
-        if golden_cross and rsi < 70 and current_price > ma200 and lstm_close > current_price:
-            final_recommend_total_desicion = "매수"
-        elif double_top or head_and_shoulders or rsi > 70 or current_price < ma50:
-            final_recommend_total_desicion = "매도"
+        if (
+            golden_cross > 0 and           # 장기 추세 전환
+            rsi < 70 and                   # 과매수 아님
+            current_price > ma200 and     # 장기 평균 이상
+            lstm_close > current_price    # AI 예측이 상승 예측
+        ):
+            final_recommend_total_desicion = '강력매수'
+        else:
+            score = 0
 
+            # 매수 신호 판단 요소
+            if golden_cross > 0: score += 1
+            if rsi < 70: score += 1
+            if current_price > ma50: score += 1
+            if lstm_close > current_price: score += 1
+
+            # 매도 신호 판단 요소
+            sell_score = 0
+            if rsi > 70: sell_score += 1  # 과매수
+            if current_price < ma50: sell_score += 1  # 단기 이동평균보다 낮음
+            if lstm_close < current_price: sell_score += 1  # AI가 하락 예측
+            if double_top or head_and_shoulders: sell_score += 1  # 하락 패턴
+
+            print(f"과매수야? {rsi > 70}")
+            print(f"단기 이동평균보다 낮아? {current_price < ma50}")
+            print(f"AI가 하락 예측했어? {lstm_close < current_price}")
+            print(f"하락 패턴이야? {double_top or head_and_shoulders}")
+
+            # 강력 매도 신호
+            strong_sell = False
+            if (
+                rsi > 80 and
+                current_price < ma200 and
+                lstm_close < current_price and
+                (double_top or head_and_shoulders)
+            ):
+                strong_sell = True
+
+            print(f"score: {score}, sell_score: {sell_score}")
+
+            # 판단
+            if strong_sell:
+                final_recommend_total_desicion = "강력매도"
+            elif score >= 3 and sell_score <= 1:
+                final_recommend_total_desicion = "매수"
+            elif sell_score >= 3:
+                final_recommend_total_desicion = "매도"
 
     # 1년치 데이터에 대해 각 추천을 종합하여 최종 추천을 내림
     final_recommend_gc = "매수" if recommend_gc.count("매수") > recommend_gc.count("매도") else "매도"
