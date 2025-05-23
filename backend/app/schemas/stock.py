@@ -18,6 +18,11 @@ class StockRequest(BaseModel):
     timeframe: str = "6mo"  # e.g., "1mo", "6mo", "1y"
     currency: str = "USD"
 
+class TunningPoint(BaseModel):
+    date: str
+    type: str
+    price: float
+    
 # 주식 예측 결과를 반환할 Pydantic 모델
 class PredictionData(BaseModel):
     dates: List[str]
@@ -40,6 +45,7 @@ class PredictionData(BaseModel):
     doubleTop: List[float]
     headAndShoulders: List[float]
     inverseHeadAndShoulders: List[float]
+    tunningPoints: List[TunningPoint]
     recommendMacdSignal: str
     recommendGC: str
     recommendRSI: str

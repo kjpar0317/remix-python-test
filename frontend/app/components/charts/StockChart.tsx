@@ -1,3 +1,9 @@
+import type {
+	_DeepPartialArray,
+	_DeepPartialObject,
+} from "node_modules/chart.js/dist/types/utils";
+
+import { useEffect, useRef } from "react";
 import {
 	Chart,
 	Legend,
@@ -9,8 +15,11 @@ import {
 	TimeScale,
 	Tooltip,
 } from "chart.js";
-import { useEffect, useRef } from "react";
 import "chartjs-adapter-date-fns";
+import annotationPlugin, {
+	type AnnotationOptions,
+	type AnnotationTypeRegistry,
+} from "chartjs-plugin-annotation";
 import { ko } from "date-fns/locale";
 
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -25,7 +34,14 @@ Chart.register(
 	Tooltip,
 	Legend,
 	ScatterController,
+	annotationPlugin,
 );
+
+type TunningPoints = {
+	date: string;
+	type: string;
+	close: number;
+};
 
 interface StockChartProps {
 	data: {
@@ -40,6 +56,7 @@ interface StockChartProps {
 		macd: number[];
 		signal: number[];
 		sniperSignal: number[];
+		tunningPoints: TunningPoints[];
 		recommendMacdSignal: string;
 		recommendGC: string;
 		recommendRSI: string;
@@ -47,6 +64,21 @@ interface StockChartProps {
 		recommendTotalDecision: string;
 	};
 }
+
+type AnnotationList =
+	| _DeepPartialArray<AnnotationOptions<keyof AnnotationTypeRegistry>>
+	| _DeepPartialObject<
+			Record<string, AnnotationOptions<keyof AnnotationTypeRegistry>>
+	  >
+	| {
+			type: string;
+			scaleID: string;
+			value: string;
+			borderColor: string;
+			borderWidth: number;
+			label: { content: string; enabled: boolean; position: string };
+	  }[]
+	| undefined;
 
 export default function StockChart({ data }: StockChartProps) {
 	const chartRef = useRef<HTMLCanvasElement>(null);
@@ -62,6 +94,75 @@ export default function StockChart({ data }: StockChartProps) {
 
 		const ctx = chartRef.current.getContext("2d");
 		if (!ctx) return;
+
+		// const annotaionList: AnnotationList = [];
+
+		// biome-ignore lint/complexity/noForEach: <explanation>
+		// data.tunningPoints.forEach((pt: TunningPoints) => {
+		// 	annotaionList.push({
+		// 		type: "line",
+		// 		scaleID: "x",
+		// 		value: pt.date,
+		// 		borderColor: pt.type === "buy" ? "green" : "red",
+		// 		borderWidth: 1,
+		// 		borderDash: [5, 5],
+		// 		label: {
+		// 			content: pt.type === "buy" ? "매수" : "매도",
+		// 			enabled: true,
+		// 			position: "start",
+		// 		},
+		// 	});
+		// });
+
+		const annotationList = [];
+
+		for (let i = 0; i < data.tunningPoints.length - 1; i++) {
+			const pt = data.tunningPoints[i];
+			const nextPt = data.tunningPoints[i + 1];
+
+			if (pt.type === "buy" && nextPt.type === "sell") {
+				annotationList.push({
+					type: "box",
+					xMin: pt.date,
+					xMax: nextPt.date,
+					backgroundColor: "rgba(0, 255, 0, 0.05)", // 연한 초록색
+					borderWidth: 0,
+					// label: {
+					// 	drawTime: 'afterDraw',
+					// 	display: true,
+					// 	content: "매수 구간",
+					// 	position: {
+					// 		x: 'center',
+					// 		y: 'start'
+					// 	}
+					// },
+				});
+			} else if (pt.type === "sell" && nextPt.type === "buy") {
+				annotationList.push({
+					type: "box",
+					xMin: pt.date,
+					xMax: nextPt.date,
+					backgroundColor: "rgba(255, 0, 0, 0.05)", // 연한 빨간색
+					borderWidth: 0,
+					// label: {
+					// 	drawTime: 'afterDraw',
+					// 	display: true,
+					// 	content: "매도 구간",
+					// 	position: {
+					// 		x: 'center',
+					// 		y: 'start'
+					// 	}
+					// },
+				});
+			}
+		}
+
+		console.log(annotationList);
+
+		console.log(annotationList.reduce((acc: any, annotation, index) => {
+			acc[`line${index}`] = annotation;
+			return acc;
+		}, {}));
 
 		chartInstance.current = new Chart(ctx, {
 			type: "line",
@@ -192,6 +293,15 @@ export default function StockChart({ data }: StockChartProps) {
 					},
 					legend: {
 						position: "top",
+					},
+					annotation: {
+						common: {
+							drawTime: "beforeDraw",
+						},
+						annotations: annotationList.reduce((acc: any, annotation, index) => {
+							acc[`line${index}`] = annotation;
+							return acc;
+						}, {}),
 					},
 				},
 			},

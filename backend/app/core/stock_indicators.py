@@ -1,8 +1,10 @@
 import os
 import pandas as pd
 import numpy as np
+from typing import List
 import tensorflow as tf
 
+from datetime import datetime
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
@@ -11,7 +13,9 @@ from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from datetime import datetime
+from scipy.signal import argrelextrema
+
+from app.schemas.stock import TunningPoint
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
@@ -276,3 +280,40 @@ def calc_price_with_lstm_cnn(df: pd.DataFrame):
     # y_test_real = scaler.inverse_transform(y_test.reshape(-1, 1))
 
     return { "lstm": lstm_pred[-1].item(), "cnn": cnn_pred[-1].item() }
+
+"""
+    변곡점 후보 탐지
+"""
+def calc_tunning_point(df: pd.DataFrame) -> List[TunningPoint]:
+    # N일 기준 국소 최저점/최고점 (변곡점 후보)
+    n = 5  # n일 기준으로 국소적인 저점/고점 판단
+    new_df = pd.DataFrame({
+        'date': df['Date'],
+        'min': None,
+        'max': None,
+        'close': df['Close']
+    })
+    
+    new_df['min'] = df['Close'][argrelextrema(df['Close'].values, np.less_equal, order=n)[0]]
+    new_df['max'] = df['Close'][argrelextrema(df['Close'].values, np.greater_equal, order=n)[0]]
+
+    # 변곡점 리스트 만들기
+    turning_points = []
+    prev_type = None
+
+    for i, row in new_df.iterrows():
+        point_type = None
+        if not np.isnan(row['min']):
+            point_type = 'buy'
+        elif not np.isnan(row['max']):
+            point_type = 'sell'
+        
+        if point_type and point_type != prev_type:
+            turning_points.append({
+                'date': row['date'],
+                'type': point_type,
+                'price': row['close']
+            })
+            prev_type = point_type
+
+    return turning_points

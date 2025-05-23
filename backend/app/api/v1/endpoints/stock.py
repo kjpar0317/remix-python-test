@@ -10,7 +10,7 @@ import pandas as pd
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
 from app.core.http import get_openai_client, get_tavily_client
 from app.core.stock import get_currency_rate, subtract_timeframe, get_final_rsi_recommendation, generate_recommendations, analyze_news_sentiment
-from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_price_with_lstm_cnn
+from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_tunning_point
 
 router = APIRouter()
 
@@ -315,12 +315,13 @@ async def chart_data(req: StockRequest):
         "doubleTop": df["Double Top"].tolist(),
         "headAndShoulders": df["Head and Shoulders"].tolist(),
         "inverseHeadAndShoulders": df["Inverse Head and Shoulders"].tolist(),
+        "tunningPoints": calc_tunning_point(df),
         "recommendMacdSignal": final_recommend_macd_signal,
         "recommendGC": final_recommend_gc,  # Golden Cross에 대한 최종 추천
         "recommendRSI": final_recommend_rsi,  # RSI에 대한 최종 추천
         "recommendUpperLower": final_recommend_upper_lower,  # Upper Band에 대한 최종 추천
         "recommendSniperSignal": final_recommend_sniper_signal,  # Lower Band에 대한 최종 추천
-        "recommendTotalDecision": final_recommend_total_desicion
+        "recommendTotalDecision": final_recommend_total_desicion,        
     }
 
     return result

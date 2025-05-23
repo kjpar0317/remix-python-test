@@ -10,13 +10,16 @@ import {
 
 export default function Header() {
 	return (
-		<nav className="fixed right-3 top-0 z-[0] flex w-full md:w-[calc(100vw_-_8%)] flex-row items-center justify-between rounded-lg bg-white/30 py-2 backdrop-blur-xl transition-all dark:bg-transparent md:right-[30px] md:top-4 md:w-[calc(100vw_-_8%)] md:p-2">
-			<div className="ml-[20px] md:ml-[2px]">
+		<nav className="fixed right-3 top-0 z-[0] flex w-full md:w-[calc(100vw_-_8%)] flex-row items-center justify-between rounded-lg bg-white/30 backdrop-blur-xl transition-all dark:bg-transparent md:right-[30px] md:w-[calc(100vw_-_8%)] md:p-2">
+			<div className="ml-[50px] md:ml-[50px]">
 				<h1 className="animate-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 shrink capitalize font-bold bg-clip-text text-transparent text-2xl font-black">
 					TEST
 				</h1>
 			</div>
-			<div className="w-[154px] min-w-max md:ml-auto">
+			<div className="flex w-auto items-center justify-center">
+				<div>테스트</div>
+			</div>
+			<div className="min-w-max mr-7">
 				<div className="flex min-w-max max-w-max flex-grow justify-around gap-1 rounded-lg md:px-2 md:py-2 md:pl-3 xl:gap-2">
 					<Button className="items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-background hover:bg-accent hover:text-accent-foreground flex h-9 min-w-9 cursor-pointer rounded-full border-zinc-200 p-0 text-xl text-zinc-950 dark:border-zinc-800 dark:text-white md:min-h-10 md:min-w-10">
 						<svg

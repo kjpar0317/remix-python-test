@@ -17,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "~/components/ui/select";
+import StockChartSkeleton from "~/components/charts/StockChartSkeleton";
 
 export default function Dashboard() {
 	const actionData = useActionData<ActionData>();
@@ -117,7 +118,7 @@ export default function Dashboard() {
 				<Button onClick={handlePrint}>PDF</Button>
 				<div ref={componentRef} className="w-full mt-5">
 					<div className="flex flex-col items-stretch">
-						{actionData && <StockChart data={actionData} />}
+						{!isLoading ? (actionData && <StockChart data={actionData} />) : <StockChartSkeleton />}
 					</div>
 					{actionData && (
 						<div className="flex flex-col items-stretch">

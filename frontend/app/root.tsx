@@ -33,10 +33,12 @@ export default function App() {
 				<Meta />
 				<Links />
 			</head>
-			<body className="w-full h-full m-0">
-				<Outlet />
-				<ScrollRestoration />
-				<Scripts />
+			<body className="w-full h-full m-0 p-0">
+				<div id="root" className="w-full h-full">
+					<Outlet />
+					<ScrollRestoration />
+					<Scripts />
+				</div>
 			</body>
 		</html>
 	);

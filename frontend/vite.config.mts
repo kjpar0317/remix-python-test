@@ -1,3 +1,6 @@
+import type { ViteDevServer } from "vite";
+import type { Connect } from "vite";
+
 import { vitePlugin as remix } from "@remix-run/dev";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
@@ -5,7 +8,6 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 
 export default defineConfig({
 	define: {
@@ -25,7 +27,7 @@ export default defineConfig({
 		tailwindcss(),
 		{
 			name: 'handle-well-known',
-			configureServer(server) {
+			configureServer(server: ViteDevServer) {
 				server.middlewares.use('/.well-known/appspecific/com.chrome.devtools.json', (req, res, next) => {
 					res.statusCode = 204;
 					res.end();
@@ -39,7 +41,7 @@ export default defineConfig({
 				target: process.env.API_BASE_URL,
 				changeOrigin: true,
 				secure: false,
-				rewrite: (path) => path.replace(/^\/api/, ""),
+				rewrite: (path: string) => path.replace(/^\/api/, ""),
 			},
 		},
 	},	
