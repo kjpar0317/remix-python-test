@@ -7,8 +7,9 @@ from datetime import timedelta
 import yfinance as yf
 import pandas as pd
 
+from app.core.config import settings
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
-from app.core.http import get_openai_client, get_tavily_client
+from app.core.http import get_openai_client, get_tavily_client, get_serp_client
 from app.core.stock import get_currency_rate, subtract_timeframe, get_final_rsi_recommendation, generate_recommendations, analyze_news_sentiment
 from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_tunning_point
 
@@ -20,6 +21,7 @@ async def analyze_stock(
     request: StockAnalysisRequest, 
     openai_client: httpx.AsyncClient = Depends(get_openai_client),
     tavily_client: httpx.AsyncClient = Depends(get_tavily_client),
+    serp_client: httpx.AsyncClient = Depends(get_serp_client)
 ):
     # 1. Tavily API로 주식 관련 정보 수집
     news_response = await tavily_client.post(
@@ -32,9 +34,17 @@ async def analyze_stock(
     )
 
     if news_response.status_code != 200:
-        raise HTTPException(status_code=503, detail="뉴스 데이터 검색에 실패했습니다")
-
-    news_data = news_response.json()
+        # raise HTTPException(status_code=503, detail="뉴스 데이터 검색에 실패했습니다")
+        news_response = await serp_client.get("", params= {
+            "engine": "google_news",
+            "q": f"site:bloomberg.com {request.ticker}",
+            "api_key": settings.SERP_API_KEY
+        })
+        news_response.raise_for_status()
+        serp_data = news_response.json()
+        news_data = [item["link"] for item in serp_data.get("news_results", [])]
+    else:
+        news_data = news_response.json()
     
     # 2. OpenAI API로 수집된 정보 분석
     analysis_response = await openai_client.post(

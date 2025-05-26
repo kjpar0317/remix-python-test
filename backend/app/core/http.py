@@ -16,3 +16,9 @@ async def get_tavily_client():
         headers={"Authorization": f"Bearer {settings.TAVILY_API_KEY}"},
         timeout=httpx.Timeout(30.0) 
     )
+
+async def get_serp_client():
+    return httpx.AsyncClient(
+        base_url="https://serpapi.com/search.json",
+        timeout=httpx.Timeout(30.0) 
+    )

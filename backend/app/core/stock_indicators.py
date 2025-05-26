@@ -2,14 +2,14 @@ import os
 import pandas as pd
 import numpy as np
 from typing import List
-import tensorflow as tf
+# import tensorflow as tf
 
 from datetime import datetime
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -190,9 +190,9 @@ def predict_close_price_with_rf(df: pd.DataFrame):
         predicted_close_log = model.predict(pd.DataFrame([new_row]))[0]
         predicted_close = np.expm1(predicted_close_log)
 
-        lstm_cnn_close = calc_price_with_lstm_cnn(df)
+        # lstm_cnn_close = calc_price_with_lstm_cnn(df)
 
-        print(lstm_cnn_close)
+        # print(lstm_cnn_close)
 
         # NaN 값을 0으로 바꿔서 safe_dict 생성
         safe_row = {k: (0 if pd.isna(v) else v) for k, v in new_row.items()}
@@ -202,8 +202,8 @@ def predict_close_price_with_rf(df: pd.DataFrame):
             **safe_row,
             # 'Golden Cross': 0,
             'Close': predicted_close,
-            'LSTM Close': lstm_cnn_close['lstm'],
-            'CNN Close': lstm_cnn_close['cnn']
+            # 'LSTM Close': lstm_cnn_close['lstm'],
+            # 'CNN Close': lstm_cnn_close['cnn']
         })
 
         # # 예측값을 기존 df에 추가하여 다음날 지표 계산에 반영
@@ -212,8 +212,8 @@ def predict_close_price_with_rf(df: pd.DataFrame):
             **new_row,
             # 'Golden Cross': 0,
             'Close': predicted_close,
-            'LSTM Close': lstm_cnn_close['lstm'],
-            'CNN Close': lstm_cnn_close['cnn']
+            # 'LSTM Close': lstm_cnn_close['lstm'],
+            # 'CNN Close': lstm_cnn_close['cnn']
         }])], ignore_index=True)
 
     # # 미래 예측 결과
@@ -240,46 +240,46 @@ def create_sequences(data, window_size):
         y.append(data[i+window_size])
     return np.array(X), np.array(y)
 
-def calc_price_with_lstm_cnn(df: pd.DataFrame):
-    if len(df) <= 20:
-        return { "lstm": df['Close'][-1].item(), "cnn": df['Close'][-1].item() }
+# def calc_price_with_lstm_cnn(df: pd.DataFrame):
+#     if len(df) <= 20:
+#         return { "lstm": df['Close'][-1].item(), "cnn": df['Close'][-1].item() }
     
-    # 1. 데이터 스케일링 및 시퀀스 생성
-    scaler = MinMaxScaler()
-    scaled_close = scaler.fit_transform(df["Close"].values.reshape(-1, 1))
-    X_seq, y_seq = create_sequences(scaled_close, window_size=20)
+#     # 1. 데이터 스케일링 및 시퀀스 생성
+#     scaler = MinMaxScaler()
+#     scaled_close = scaler.fit_transform(df["Close"].values.reshape(-1, 1))
+#     X_seq, y_seq = create_sequences(scaled_close, window_size=20)
 
-    # 2. train/test 분리
-    split = int(len(X_seq) * 0.8)
-    X_train, X_test = X_seq[:split], X_seq[split:]
-    y_train, y_test = y_seq[:split], y_seq[split:]
+#     # 2. train/test 분리
+#     split = int(len(X_seq) * 0.8)
+#     X_train, X_test = X_seq[:split], X_seq[split:]
+#     y_train, y_test = y_seq[:split], y_seq[split:]
 
-    # 3. LSTM 모델
-    lstm_model = Sequential([
-        LSTM(50, return_sequences=False, input_shape=(X_train.shape[1], 1)),
-        Dense(1)
-    ])
-    lstm_model.compile(optimizer='adam', loss='mse')
-    lstm_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
+#     # 3. LSTM 모델
+#     lstm_model = Sequential([
+#         LSTM(50, return_sequences=False, input_shape=(X_train.shape[1], 1)),
+#         Dense(1)
+#     ])
+#     lstm_model.compile(optimizer='adam', loss='mse')
+#     lstm_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
 
-    # 4. CNN 모델
-    cnn_model = Sequential([
-        Conv1D(64, kernel_size=3, activation='relu', input_shape=(X_train.shape[1], 1)),
-        MaxPooling1D(pool_size=2),
-        Flatten(),
-        Dense(50, activation='relu'),
-        Dense(1)
-    ])
-    cnn_model.compile(optimizer='adam', loss='mse')
-    cnn_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
+#     # 4. CNN 모델
+#     cnn_model = Sequential([
+#         Conv1D(64, kernel_size=3, activation='relu', input_shape=(X_train.shape[1], 1)),
+#         MaxPooling1D(pool_size=2),
+#         Flatten(),
+#         Dense(50, activation='relu'),
+#         Dense(1)
+#     ])
+#     cnn_model.compile(optimizer='adam', loss='mse')
+#     cnn_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
 
-    # 5. 예측 및 역변환
-    lstm_pred = scaler.inverse_transform(lstm_model.predict(X_test))
-    cnn_pred = scaler.inverse_transform(cnn_model.predict(X_test))
-    # 실제 주가 값
-    # y_test_real = scaler.inverse_transform(y_test.reshape(-1, 1))
+#     # 5. 예측 및 역변환
+#     lstm_pred = scaler.inverse_transform(lstm_model.predict(X_test))
+#     cnn_pred = scaler.inverse_transform(cnn_model.predict(X_test))
+#     # 실제 주가 값
+#     # y_test_real = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-    return { "lstm": lstm_pred[-1].item(), "cnn": cnn_pred[-1].item() }
+#     return { "lstm": lstm_pred[-1].item(), "cnn": cnn_pred[-1].item() }
 
 """
     변곡점 후보 탐지

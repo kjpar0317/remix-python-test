@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PW: str = "test"
     OPEN_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
+    SERP_API_KEY: str = os.getenv("SERP_API_KEY", "")
     LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY", "")
 
     class Config:
