@@ -18,6 +18,7 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import StockChartSkeleton from "~/components/charts/StockChartSkeleton";
+import AnalysisContentSkeleton from "~/components/features/AnalysisContentSkeleton";
 
 export default function Dashboard() {
 	const actionData = useActionData<ActionData>();
@@ -120,14 +121,15 @@ export default function Dashboard() {
 					<div className="flex flex-col items-stretch">
 						{!isLoading ? (actionData && <StockChart data={actionData} />) : <StockChartSkeleton />}
 					</div>
-					{actionData && (
+					{!isLoading ? (actionData && (
 						<div className="flex flex-col items-stretch">
 							<AnaysisContent
 								ticker={actionData.ticker}
 								timeframe={actionData.timeframe}
 							/>
 						</div>
-					)}
+					)) : <AnalysisContentSkeleton />
+					}
 				</div>
 			</div>
 		</div>
