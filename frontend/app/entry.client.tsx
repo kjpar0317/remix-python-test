@@ -8,22 +8,30 @@ import { RemixBrowser } from "@remix-run/react";
 import { StrictMode, startTransition } from "react";
 import { hydrateRoot } from "react-dom/client";
 import {
-	QueryClient,
-	QueryClientProvider,
-	HydrationBoundary,
-  } from '@tanstack/react-query';
+  QueryClient,
+  QueryClientProvider,
+  HydrationBoundary,
+} from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
 
 startTransition(() => {
-	hydrateRoot(
-		document,
-		<StrictMode>
-			<QueryClientProvider client={queryClient}>
-				<HydrationBoundary state={(window as any).__REACT_QUERY_STATE__}>
-					<RemixBrowser />
-				</HydrationBoundary>
-			</QueryClientProvider>
-		</StrictMode>,
-	);
+  hydrateRoot(
+    document,
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <HydrationBoundary state={(window as any).__REACT_QUERY_STATE__}>
+          <RemixBrowser />
+        </HydrationBoundary>
+      </QueryClientProvider>
+    </StrictMode>
+  );
 });
