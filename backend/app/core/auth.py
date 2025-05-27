@@ -1,3 +1,5 @@
+import logging
+
 from typing import Optional, MutableMapping, List, Union, Any, Annotated
 from datetime import datetime, timedelta, timezone
 from fastapi import Request, HTTPException, Depends, status
@@ -17,6 +19,8 @@ JWTPayloadMapping = MutableMapping[
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 # 1. 쿠키로 인증하는 Security 정의
 cookie_scheme = APIKeyCookie(name="token", auto_error=False)
+
+logger = logging.getLogger(__name__)
 
 async def authenticate(
     *,
@@ -72,13 +76,13 @@ def decode_jwt_token(token: str) -> dict:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError as ex:
-        print("JWTError Exception:", repr(ex))  # ❗️여기에서 에러 내용을 정확히 출력
+        logger.error("JWTError Exception:", repr(ex))  # ❗️여기에서 에러 내용을 정확히 출력
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
     except Exception as ex:
-        print("Unhandled Exception:", repr(ex))  # ❗️여기에서 에러 내용을 정확히 출력
+        logger.error("Unhandled Exception:", repr(ex))  # ❗️여기에서 에러 내용을 정확히 출력
         raise HTTPException(
             status_code=500,
             detail="Unexpected error during token decoding",
@@ -88,8 +92,8 @@ def decode_jwt_token(token: str) -> dict:
 #     # cookie 토큰 우선 (major)
 #     token = request.cookies.get("token")
 
-#     print(f"cookie token: {token}")
-#     print(f"🟡 schema token: {schema_token}")
+#     logger.info(f"cookie token: {token}")
+#     logger.info(f"🟡 schema token: {schema_token}")
 
 #     if token:
 #         return token
@@ -112,7 +116,7 @@ async def get_current_user(token: Annotated[str, Depends(cookie_scheme)]):
     )
 
     try:
-        print(f"result token: {token}")
+        logger.info(f"result token: {token}")
 
         payload = decode_jwt_token(token)
         username = payload.get("sub")

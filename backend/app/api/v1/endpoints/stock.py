@@ -1,11 +1,12 @@
 import httpx
+import yfinance as yf
+import pandas as pd
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.callbacks.tracers import LangChainTracer
-from datetime import timedelta
-import yfinance as yf
-import pandas as pd
 
 from app.core.config import settings
 from app.schemas.stock import StockAnalysisResponse, StockAnalysisRequest, StockRequest, PredictionData
@@ -14,6 +15,8 @@ from app.core.stock import get_currency_rate, subtract_timeframe, get_final_rsi_
 from app.core.stock_indicators import calc_price_with_ta, predict_close_price_with_rf, calc_tunning_point
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 # 엔드포인트 정의
 @router.post("/analysis", response_model=StockAnalysisResponse)
@@ -162,7 +165,7 @@ async def chart_data(req: StockRequest):
     if base_currency != target_currency:
         currency_rate = get_currency_rate(base_currency, target_currency)
 
-        # print(f"base: {base_currency}, target: {target_currency}, rate: {currency_rate}")
+        # logger.info(f"base: {base_currency}, target: {target_currency}, rate: {currency_rate}")
         # 가격 관련 컬럼들에 환율 적용
         price_columns = ['Open', 'High', 'Low', 'Close']
         df[price_columns] = df[price_columns].multiply(currency_rate)
@@ -285,12 +288,12 @@ async def chart_data(req: StockRequest):
             if lstm_close < current_price: sell_score += 1  # AI가 하락 예측
             if double_top or head_and_shoulders: sell_score += 1  # 하락 패턴
 
-            print(f"과매수야? {rsi > 70}")
-            print(f"단기 이동평균보다 낮아? {current_price < ma50}")
-            print(f"AI가 하락 예측했어? {lstm_close < current_price}")
-            print(f"하락 패턴이야? {double_top or head_and_shoulders}")
+            logger.info(f"과매수야? {rsi > 70}")
+            logger.info(f"단기 이동평균보다 낮아? {current_price < ma50}")
+            logger.info(f"AI가 하락 예측했어? {lstm_close < current_price}")
+            logger.info(f"하락 패턴이야? {double_top or head_and_shoulders}")
 
-            print(f"score: {score}, sell_score: {sell_score}")
+            logger.info(f"score: {score}, sell_score: {sell_score}")
 
             # 판단
             if score >= 3 and sell_score <= 1:
@@ -344,25 +347,22 @@ async def post_test(req: StockRequest):
     real_start_date = subtract_timeframe(end_date, req.timeframe)
     # start_date = real_start_date - timedelta(days=200)
 
-    # print(f"start_date: {start_date}")
+    # logger.info(f"start_date: {start_date}")
 
     df = stock_data.history(start=real_start_date, end=end_date)
     # df = stock_data.history(start=real_start_date, end=end_date)
 
-    print(df)
+    logger.info(df)
 
-    print("-----------------------------------------")
+    logger.info("-----------------------------------------")
 
     real_start_date = real_start_date.tz_localize(df.index.tz)
     df = df[df.index >= real_start_date]
 
-    print(df)
+    logger.info(df)
 
     df['Date'] = df.index.strftime('%Y-%m-%d').tolist()
 
-
-
-
-    # print(calc_price_with_lstm_cnn(df))
+    # logger.info(calc_price_with_lstm_cnn(df))
 
     return True
