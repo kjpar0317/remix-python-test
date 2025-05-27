@@ -1,3 +1,4 @@
+import os
 import logging 
 
 from fastapi import FastAPI, HTTPException, Request
@@ -7,6 +8,8 @@ from app.core.config import settings
 from app.core.database import database
 from app.core.auth import decode_jwt_token
 from app.api.v1.api import api_router
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

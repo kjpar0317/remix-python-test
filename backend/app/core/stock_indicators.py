@@ -1,7 +1,6 @@
-import os
 import pandas as pd
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 import logging
 
 from typing import List
@@ -19,8 +18,6 @@ from scipy.signal import argrelextrema
 from app.schemas.stock import TunningPoint
 
 logger = logging.getLogger(__name__)
-
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 indicator_features = ['MA20', 'MA50', 'MA200', 'Golden Cross', 'RSI', 'stddev', 'Upper Band', 'Lower Band', 'Bollinger Breakout Upper', 'Bollinger Breakout Lower', 'MACD', 'Signal', 'Sniper Signal', 'Smart Sniper', 'Double Bottom', 'Double Top', 'Head and Shoulders', 'Inverse Head and Shoulders']
 
@@ -43,7 +40,7 @@ def calc_price_with_ta(df: pd.DataFrame) -> pd.DataFrame:
     df["RSI"]  = df["RSI"].bfill()
     
     # 3. 볼린저 밴드 (Bollinger Bands)
-    indicator_bb = BollingerBands(close=df['Close'], window=14, window_dev=2)
+    indicator_bb = BollingerBands(close=df['Close'], window=14, window_dev=2, fillna=True)
     df['Avg Band'] = indicator_bb.bollinger_mavg()
     df['Upper Band'] = indicator_bb.bollinger_hband()
     df['Lower Band'] = indicator_bb.bollinger_lband()
