@@ -8,6 +8,7 @@ from datetime import datetime
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
+from tensorflow.keras import Input
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
 from sklearn.preprocessing import MinMaxScaler
@@ -104,95 +105,66 @@ def calc_price_with_ta(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-"""
-    기술적 지표 활용: 기술적 지표를 기반으로 예측을 수행할 수 있습니다. 예를 들어, 이동 평균 교차, RSI, MACD 등을 사용하여 매수/매도 신호를 생성하고 이를 기반으로 예측할 수 있습니다.
-"""
-def predict_close_price_with_rf(df: pd.DataFrame):
-    # 학습 데이터 구성
-    train_df = df.dropna()
+# 마지막 행에서 예측에 필요한 피처 추출
+def extract_features_from_last(df: pd.DataFrame) -> list[float]:
+    last_row = df.iloc[-1]
+    return [last_row[feature] for feature in indicator_features]
 
-    # 지연 피처
-    df['Close_t-1'] = df['Close'].shift(1)
-    df['Close_t-2'] = df['Close'].shift(2)
-    # 결측치(NA/NaN 값)를 제거
-    df.dropna()
+# Random Forest 예측
+def predict_close_price_with_rf(df: pd.DataFrame, predict_days: int = 5) -> list[float]:
+    df = calc_price_with_ta(df.copy())
 
-    df['LSTM Close'] = df['Close']
-    df['CNN Close'] = df['Close']
+    target_col = "Close"
 
-    x = train_df[indicator_features]
-    y = train_df['Close']
+    df["LSTM Close"] = df[target_col]
+    df["CNN Close"] = df[target_col]
 
+    x = df[indicator_features]
+    y = df[target_col]
+
+    # 모델 학습
     x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
 
     y_train_log = np.log1p(y_train)
     y_test_log = np.log1p(y_val)
 
-    model.fit(x_train, y_train_log)
+    rf_model.fit(x_train, y_train_log)
+
+    # 학습은 딱 한 번만
+    lstm_model, cnn_model, scaler = train_lstm_cnn_model(df)
 
     # 현재 날짜 가져오기
     today = datetime.now()
-     # 미래 예측 준비
-    future_days = 5
     # 미래 날짜 생성 (내일부터 시작)
-    future_dates = pd.date_range(start=today, periods=future_days, freq='D')
-    # 미래 데이터프레임 생성
-    future_df = pd.DataFrame({'Date': future_dates.strftime('%Y-%m-%d')})
+    future_dates = pd.date_range(start=today, periods=predict_days, freq='D')
 
-    # 미래 예측
-    future_preds = []
-    for i in range(future_days):
+    for i in range(predict_days):
         df = calc_price_with_ta(df)
+        features = extract_features_from_last(df)
+        features_df = pd.DataFrame([features], columns=indicator_features)
 
-        # 지연 피처
-        df['Close_t-1'] = df['Close'].shift(1)
-        df['Close_t-2'] = df['Close'].shift(2)
+        predicted_price_log = rf_model.predict(features_df)[0]
+        predicted_close = np.expm1(predicted_price_log)
 
-        latest = df.iloc[-1]
-
-        if pd.isna(latest['MA200']):
-            latest['MA200'] = latest['MA50'] 
-
-        new_row = {feature: latest[feature] for feature in indicator_features}
-
-        predicted_close_log = model.predict(pd.DataFrame([new_row]))[0]
-        predicted_close = np.expm1(predicted_close_log)
-
-        lstm_cnn_close = calc_price_with_lstm_cnn(df)
-
-        # logger.info(lstm_cnn_close)
-
+        scaler = MinMaxScaler()
+        scaled_close = scaler.fit_transform(df["Close"].values.reshape(-1, 1))
+        x_last = scaled_close[-20:].reshape(1, 20, 1)
+        lstm_pred = scaler.inverse_transform(lstm_model.predict(x_last))[0, 0]
+        cnn_pred = scaler.inverse_transform(cnn_model.predict(x_last))[0, 0]
+        
         # NaN 값을 0으로 바꿔서 safe_dict 생성
-        safe_row = {k: (0 if pd.isna(v) else v) for k, v in new_row.items()}
+        # safe_row = {k: (0 if pd.isna(v) else v) for k, v in features_df.items()}
 
-        future_preds.append({
-            'Date': future_dates[i].strftime('%Y-%m-%d'),
-            **safe_row,
-            'Close': predicted_close,
-            'LSTM Close': lstm_cnn_close['lstm'],
-            'CNN Close': lstm_cnn_close['cnn']
-        })
-
-        # # 예측값을 기존 df에 추가하여 다음날 지표 계산에 반영
         df = pd.concat([df, pd.DataFrame([{
             'Date': future_dates[i].strftime('%Y-%m-%d'),
-            **new_row,
+            **features_df.iloc[0].to_dict(),
             'Close': predicted_close,
-            'LSTM Close': lstm_cnn_close['lstm'],
-            'CNN Close': lstm_cnn_close['cnn']
+            'LSTM Close': lstm_pred,
+            'CNN Close': cnn_pred
         }])], ignore_index=True)
 
-    # # 미래 예측 결과
-    future_df = pd.DataFrame(future_preds)
-
-    # df와 future_df 결합
-    df = pd.concat([df, future_df], ignore_index=True)
-
-    logger.info(future_df)
-
-    # NaN 값을 0으로 대체
-    # df = df.fillna(0)
+    df = df.fillna(0)
 
     return df
 
@@ -204,46 +176,39 @@ def create_sequences(data, window_size):
         y.append(data[i+window_size])
     return np.array(X), np.array(y)
 
-def calc_price_with_lstm_cnn(df: pd.DataFrame):
-    if len(df) <= 20:
-        return { "lstm": df['Close'][-1].item(), "cnn": df['Close'][-1].item() }
-    
-    # 1. 데이터 스케일링 및 시퀀스 생성
+def train_lstm_cnn_model(df: pd.DataFrame):
     scaler = MinMaxScaler()
     scaled_close = scaler.fit_transform(df["Close"].values.reshape(-1, 1))
     X_seq, y_seq = create_sequences(scaled_close, window_size=20)
 
-    # 2. train/test 분리
+    # train/test 분리
     split = int(len(X_seq) * 0.8)
-    X_train, X_test = X_seq[:split], X_seq[split:]
-    y_train, y_test = y_seq[:split], y_seq[split:]
+    X_train, y_train = X_seq[:split], y_seq[:split]
 
-    # 3. LSTM 모델
+    # LSTM
     lstm_model = Sequential([
-        LSTM(50, return_sequences=False, input_shape=(X_train.shape[1], 1)),
+        Input(shape=(X_train.shape[1], 1)),
+        LSTM(50, return_sequences=False),
         Dense(1)
     ])
+
     lstm_model.compile(optimizer='adam', loss='mse')
     lstm_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
 
-    # 4. CNN 모델
+    # CNN
     cnn_model = Sequential([
-        Conv1D(64, kernel_size=3, activation='relu', input_shape=(X_train.shape[1], 1)),
+        Input(shape=(X_train.shape[1], 1)),
+        Conv1D(64, kernel_size=3, activation='relu'),
         MaxPooling1D(pool_size=2),
         Flatten(),
         Dense(50, activation='relu'),
         Dense(1)
     ])
+
     cnn_model.compile(optimizer='adam', loss='mse')
     cnn_model.fit(X_train, y_train, epochs=20, batch_size=16, verbose=0)
 
-    # 5. 예측 및 역변환
-    lstm_pred = scaler.inverse_transform(lstm_model.predict(X_test))
-    cnn_pred = scaler.inverse_transform(cnn_model.predict(X_test))
-    # 실제 주가 값
-    # y_test_real = scaler.inverse_transform(y_test.reshape(-1, 1))
-
-    return { "lstm": lstm_pred[-1].item(), "cnn": cnn_pred[-1].item() }
+    return lstm_model, cnn_model, scaler
 
 """
     변곡점 후보 탐지
