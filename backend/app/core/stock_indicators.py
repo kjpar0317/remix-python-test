@@ -151,37 +151,10 @@ def predict_close_price_with_rf(df: pd.DataFrame):
 
         latest = df.iloc[-1]
 
-        ma200_value = latest['MA200']
+        if pd.isna(latest['MA200']):
+            latest['MA200'] = latest['MA50'] 
 
-        if pd.isna(ma200_value):
-            ma200_value = latest['MA50'] 
-
-        new_row = {
-            'MA20': latest['MA20'],
-            'MA50': latest['MA50'],
-            'MA200': ma200_value,
-            'Golden Cross': latest['Golden Cross'],
-            'RSI': latest['RSI'],
-            'stddev': latest['stddev'],
-            'Upper Band': latest['Upper Band'],
-            'Lower Band': latest['Lower Band'],
-            'Bollinger Breakout Upper': latest['Bollinger Breakout Upper'], 
-            'Bollinger Breakout Lower': latest['Bollinger Breakout Lower'],
-            'MACD': latest['MACD'],
-            'Signal': latest['Signal'],
-            'Sniper Signal': latest['Sniper Signal'],
-            'Smart Sniper': latest['Smart Sniper'],
-            'Double Bottom': latest['Double Bottom'], 
-            'Double Top': latest['Double Top'], 
-            'Head and Shoulders': latest['Head and Shoulders'], 
-            'Inverse Head and Shoulders': latest['Inverse Head and Shoulders']
-        }
-
-        # 지연 피처
-        df['Close_t-1'] = df['Close'].shift(1)
-        df['Close_t-2'] = df['Close'].shift(2)
-        # 결측치(NA/NaN 값)를 제거
-        df.dropna()
+        new_row = {feature: latest[feature] for feature in indicator_features}
 
         predicted_close_log = model.predict(pd.DataFrame([new_row]))[0]
         predicted_close = np.expm1(predicted_close_log)
@@ -219,10 +192,7 @@ def predict_close_price_with_rf(df: pd.DataFrame):
     logger.info(future_df)
 
     # NaN 값을 0으로 대체
-    df = df.fillna(0)
-
-    # 결측치 처리
-    # df.fillna(method='bfill', inplace=True)
+    # df = df.fillna(0)
 
     return df
 
