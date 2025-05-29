@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, HTTPException, Form
 
 from app.core.auth import authenticate, create_access_token
 from app.core.database import database
-from app.schemas.member import Member
 from app.schemas.auth import AuthRS
 
 router = APIRouter()
