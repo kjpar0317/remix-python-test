@@ -3,7 +3,7 @@ import yfinance as yf
 import pandas as pd
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.callbacks.tracers import LangChainTracer
@@ -63,7 +63,7 @@ async def analyze_stock(
     )
  
     if analysis_response.status_code != 200:
-        raise HTTPException(status_code=503, detail="데이터 분석에 실패했습니다")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="데이터 분석에 실패했습니다")
     
     analysis_result = analysis_response.json()
     analysis_content = analysis_result["choices"][0]["message"]["content"]
@@ -212,10 +212,10 @@ async def chart_data(req: StockRequest):
             recommend_rsi.append("강력매수")
         elif latest_rsi < 40:
             recommend_rsi.append("매수")
-        elif latest_rsi > 60:
-            recommend_rsi.append("매도")            
         elif latest_rsi > 70:
             recommend_rsi.append("강력매도")
+        elif latest_rsi > 60:
+            recommend_rsi.append("매도")            
 
         # Upper Band와 Lower Band에 대한 추천
         if latest_close > latest_upper:
