@@ -36,7 +36,7 @@ async def analyze_stock(
         }
     )
 
-    if news_response.status_code != 200:
+    if news_response.status_code != status.HTTP_200_OK:
         # raise HTTPException(status_code=503, detail="뉴스 데이터 검색에 실패했습니다")
         news_response = await serp_client.get("", params= {
             "engine": "google_news",
@@ -62,7 +62,7 @@ async def analyze_stock(
         }
     )
  
-    if analysis_response.status_code != 200:
+    if analysis_response.status_code != status.HTTP_200_OK:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="데이터 분석에 실패했습니다")
     
     analysis_result = analysis_response.json()
