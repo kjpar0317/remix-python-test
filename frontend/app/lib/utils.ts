@@ -74,11 +74,15 @@ export function ssrFetcher(
 	}
 
 	return fetch(apiUrl, requestInit)
-		.then((res) => {
-			if (!res.ok) throw new Error(res.statusText);
+		.then(async (res) => {
+			if (!res.ok) {
+				const errorData = await res.json();
+				throw new Error(errorData.detail || errorData.message || res.statusText);
+			}
 			return res.json();
 		})
 		.catch((e: Error) => {
-			console.log(e.message);
+			// console.error(e.message);
+			throw new Error(e.message);
 		});
 }

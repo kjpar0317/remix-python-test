@@ -11,10 +11,13 @@ export const meta: MetaFunction = () => {
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const token = getToken(request);
+
+	console.log(`token: ${token}`);
+
 	if (token) {
 		return redirect("/dashboard");
 	}
-	return redirect("/login");
+	// return redirect("/login");
 }
 
 export default function Index() {
