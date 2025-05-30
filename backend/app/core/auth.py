@@ -32,9 +32,9 @@ async def authenticate(
     user = await db.fetch_one(query)
 
     if not user:
-        return None
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "존재하지 않는 유저입니다.")
     if not verify_password(passwd, user.passwd):
-        return None
+        return HTTPException(status.HTTP_403_FORBIDDEN, "인증 정보가 맞지 않습니다.")
 
     return user
 
@@ -84,7 +84,7 @@ def decode_jwt_token(token: str) -> dict:
     except Exception as ex:
         logger.error("Unhandled Exception:", repr(ex))  # ❗️여기에서 에러 내용을 정확히 출력
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unexpected error during token decoding",
         )
 

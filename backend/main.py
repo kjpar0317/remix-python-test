@@ -1,15 +1,14 @@
-import os
 import logging 
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from watchfiles import watch
+
 from app.core.config import settings
 from app.core.database import database
 from app.core.auth import decode_jwt_token
 from app.api.v1.api import api_router
-
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,9 +27,13 @@ app.add_middleware(
 )
 
 # 향상된 로깅 구성
+# logging.basicConfig(level=logging.INFO,
+#                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+#                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+watch(".", debounce=1000)  # 1초
 
 # ✅ 전역 의존성으로 JWT 적용
 @app.middleware("http")
@@ -45,14 +48,11 @@ async def jwt_global_middleware(request: Request, call_next):
     print(f"middleware jwt check: {auth}")
 
     if not auth or not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid Authorization header")
 
     token = auth.split(" ")[1]
  
-    try:
-        decode_jwt_token(token)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    decode_jwt_token(token)
 
     return await call_next(request)
 
