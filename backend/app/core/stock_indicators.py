@@ -246,3 +246,94 @@ def calc_tunning_point(df: pd.DataFrame) -> List[TunningPoint]:
             prev_type = point_type
 
     return turning_points
+
+
+
+def summary_sell_buy(row) :
+    score = 0
+    details = []
+
+    # Golden Cross
+    if row['Golden Cross'] == 1:
+        score += 1
+        details.append("골든크로스 발생: 상승 전환 가능성 → +1")
+    else:
+        details.append("골든크로스 없음 → +0")
+
+    # RSI 분석
+    rsi = row['RSI']
+    if rsi < 30:
+        score += 2
+        details.append(f"RSI({rsi:.1f}) 과매도 상태 → +2")
+    elif rsi < 40:
+        score += 1
+        details.append(f"RSI({rsi:.1f}) 매수 가능성 → +1")
+    elif rsi > 70:
+        score -= 2
+        details.append(f"RSI({rsi:.1f}) 과매수 상태 → -2")
+    elif rsi > 60:
+        score -= 1
+        details.append(f"RSI({rsi:.1f}) 매도 가능성 → -1")
+    else:
+        details.append(f"RSI({rsi:.1f}) 중립 구간 → +0")
+
+    # Bollinger Band
+    close = row['Close']
+    upper = row['Upper Band']
+    lower = row['Lower Band']
+    if close > upper:
+        score -= 1
+        details.append("종가가 상단 밴드 초과 → 과열 가능성 → -1")
+    elif close < lower:
+        score += 1
+        details.append("종가가 하단 밴드 하회 → 반등 가능성 → +1")
+    else:
+        details.append("볼린저 밴드 내 움직임 → +0")
+
+    # MACD
+    if row['MACD'] > row['MACD_Signal']:
+        score += 1
+        details.append("MACD가 시그널선 상향 돌파 → 상승 모멘텀 → +1")
+    else:
+        score -= 1
+        details.append("MACD가 시그널선 하향 이탈 → 하락 모멘텀 → -1")
+
+    # 이동평균
+    if row['MA_5'] > row['MA_20']:
+        score += 1
+        details.append("단기 이평선이 장기 이평선 상회 → 상승 추세 → +1")
+    else:
+        score -= 1
+        details.append("단기 이평선이 하회 → 하락 추세 → -1")
+
+    # 거래량
+    if row['Volume'] > row['Average Volume'] * 1.5:
+        score += 1
+        details.append("거래량 급증 → 신호 신뢰도 증가 → +1")
+    else:
+        details.append("거래량 보통 또는 감소 → +0")
+
+    # Sniper Signal
+    if row['Sniper Signal'] == 1:
+        score += 2
+        details.append("스나이퍼 매수 신호 발생 → +2")
+    else:
+        details.append("스나이퍼 신호 없음 → +0")
+
+    # 최종 판단
+    if score >= 4:
+        decision = "📈 강력 매수"
+    elif score >= 2:
+        decision = "👍 매수 우세"
+    elif score <= -4:
+        decision = "📉 강력 매도"
+    elif score <= -2:
+        decision = "👎 매도 우세"
+    else:
+        decision = "⚖️ 관망 (중립)"
+
+    # 결과 출력
+    print("📊 추천 요약:")
+    for d in details:
+        print("-", d)
+    print(f"\n🔎 최종 판단: {decision} (점수: {score})")
